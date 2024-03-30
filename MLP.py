@@ -12,7 +12,7 @@ NO_NODES_INPUT = 64
 NO_NODES_HIDDEN = 42
 NO_NODES_OUTPUT = 27
 MAX_EPOCH = 10E3
-MAX_ERROR = 0.01
+TOLERANCE = 0.01
 
 # Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
@@ -36,7 +36,7 @@ class Model():
 			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), wl2, np.double)
 		]
 		
-	def aggregate(input_layer: npt.NDArray[np.double], layer: int, node: int) -> np.double
+	def aggregate(input_layer: npt.NDArray[np.double], layer: int, node: int) -> np.double:
 		return np.dot(self.weights[layer][node], input_layer) 
 
 	def activate(previous_layer: npt.NDArray[np.double], layer: int, node: int) -> None:
@@ -47,7 +47,7 @@ class Model():
 		epoch = 0
 		avg_error = inf
 		
-		while epoch < MAX_EPOCH or avg_error < MAX_ERROR:
+		while epoch < MAX_EPOCH or avg_error < TOLERANCE:
 		
 			for entry in training_set:
 				
