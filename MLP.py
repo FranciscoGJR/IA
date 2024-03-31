@@ -1,5 +1,6 @@
 # EP ACH2016 - "IA" | Turma 04
 # BRUNO LEITE DE ANDRADE - 11369642
+# IGOR AUGUSTO DOS SANTOS - 11796851
 # + ...
 
 import numpy as np
