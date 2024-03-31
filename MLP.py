@@ -4,14 +4,14 @@
 # + ...
 
 import numpy as np
-import numpy.typing as np_type
+import numpy.typing as npt
 from math import inf
 from typing import List
 
 
-NO_NODES_INPUT = 64
-NO_NODES_HIDDEN = 42
-NO_NODES_OUTPUT = 26
+NO_NODES_INPUT = 2
+NO_NODES_HIDDEN = 2
+NO_NODES_OUTPUT = 2
 MAX_EPOCH = 10E3
 TOLERANCE = 0.01
 
@@ -21,41 +21,46 @@ ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 
 class Model():
 
-	def __init__(wl0, wl1, wl2):
+	def __init__(self, wl1, wl2):
 
-		nodes = 
-		[
-			np.full((NO_NODES_INPUT, 1), 0, np.double),
-			np.full((NO_NODES_HIDDEN, 1), 0, np.double),
-			np.full((NO_NODES_OUTPUT, 1), 0, np.double)
+		self.nodes = [
+			np.zeros(NO_NODES_INPUT, np.double),
+			np.zeros(NO_NODES_HIDDEN, np.double),
+			np.zeros(NO_NODES_OUTPUT, np.double)
 		]
-
-		weights = 
-		[
-			np.full((NO_NODES_INPUT + 1, 1), wl0, np.double),
+		
+		self.weights = [
 			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + 1), wl1, np.double),
 			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), wl2, np.double)
 		]
-		
-	def aggregate(input_layer: npt.NDArray[np.double], layer: int, node: int) -> np.double:
-		return np.dot(self.weights[layer][node], input_layer) 
 
-	def activate(previous_layer: npt.NDArray[np.double], layer: int, node: int) -> None:
-		nodes[layer][node] = ACTIVATE(self.aggregate(previous_layer, layer, node))
-	
-	def train(training_set : List[npt.NDArray[np.double]) -> None:
-		
+	def feedforward(self, input_data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
+		vetorized_activate = np.vectorize(ACTIVATE)
+		self.nodes[0] = input_data
+		for i in range(1, len(self.nodes)):
+			hidden_out = np.dot(self.weights[i-1], np.append(self.nodes[i-1], 1))
+			self.nodes[i] = vetorized_activate(hidden_out)
+			
+		return self.nodes[-1]
+
+	def train(self, training_set: List[npt.NDArray[np.double]], target: npt.NDArray[np.double]):		
 		epoch = 0
 		avg_error = inf
-		
 		while epoch < MAX_EPOCH or avg_error < TOLERANCE:
-		
+			epoch += 1
 			for entry in training_set:
-				
-				# Talvez seja possível otimizar esse loop com alguma função do Numpy
-				layers = list(entry).extend(self.nodes[:-1])
-				for layer_index, layer in enumerate(layers):		
-					self.nodes[layer_index] = np.asarray([self.aggregate(layer, layer_index, n) for n in self.nodes[layer_index])
-					
-				# TODO: Testa se `self.nodes[2] -> tem saídas esperadas. Depois calcula o erro e faz o backfeed
+				output = self.feedforward(entry)
+				error = target - output
+				print(error)
 
+			# TODO: Backpropagation
+			break
+
+# main
+if __name__ == '__main__':
+	model = Model(0.5, 0.5)
+	input_test = [1, 2]
+
+	print(f"saida modelo: {model.feedforward(input_test)}")
+	print("erro modelo:")
+	model.train([input_test], [2])
