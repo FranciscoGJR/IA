@@ -19,7 +19,7 @@ TOLERANCE = 0.01
 ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 
 
-class Model():
+class Model:
 
 	def __init__(self, wl1, wl2):
 
@@ -43,14 +43,14 @@ class Model():
 			
 		return self.nodes[-1]
 
-	def train(self, training_set: List[npt.NDArray[np.double]], target: npt.NDArray[np.double]):		
+	def train(self, training_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
 		epoch = 0
 		avg_error = inf
 		while epoch < MAX_EPOCH or avg_error < TOLERANCE:
 			epoch += 1
-			for entry in training_set:
+			for i, entry in enumerate(training_set):
 				output = self.feedforward(entry)
-				error = target - output
+				error = target[i] - output
 				print(error)
 
 			# TODO: Backpropagation
