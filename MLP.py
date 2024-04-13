@@ -10,16 +10,20 @@ from typing import List
 import pandas as pd
 
 
-NO_NODES_INPUT = 2
-NO_NODES_HIDDEN = 4
-NO_NODES_OUTPUT = 1
-MAX_EPOCH = 30000
+NO_NODES_INPUT = 120
+NO_NODES_HIDDEN = 40
+NO_NODES_OUTPUT = 26
+MAX_EPOCH = 25
 TOLERANCE = 0.01
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.5
 
 # Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
-ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
-DERIVATIVE = lambda x: ACTIVATE(x) * (1 - ACTIVATE(x))
+def ACTIVATE(x):
+	return 1 / (1 + np.exp(-x))
+
+def DERIVATIVE(x):
+	act = ACTIVATE(x)
+	return act * (1 - act)
 
 RELU = lambda x: np.maximum(0, x)
 DERIVATIVE_RELU = lambda x: np.where(x > 0, 1, 0)
@@ -52,6 +56,14 @@ class Model:
 			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + 1), 0, np.double),
 			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), 0, np.double)
 		]
+
+	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
+		correct = 0
+		for i, entry in enumerate(test_set):
+			output = self.feedforward(entry)
+			if np.argmax(output) == np.argmax(target[i]):
+				correct += 1
+		return correct / len(test_set)
 
 	def feedforward(self, input_data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
 		vetorized_activate = np.vectorize(ACTIVATE)
@@ -92,24 +104,25 @@ class Model:
 				error = target[i] - output
 				self.backpropagation(error)
 				self.apply_changes()
+			print(f"Época: {epoch}/{MAX_EPOCH}")
 
 # main
 if __name__ == '__main__':
 	model = Model()
 
-	data = pd.read_csv('./xor.csv', header=None)
-	data = data.to_numpy()
-	targets_size = 1
-	input_csv = data[:, :-targets_size]
-	target_csv = data[:, -targets_size:]
+	input_data = np.load('./caracteres/X.npy')
 
-	print("saida antes do treino")
+	# remove dados de teste
+	input_data = input_data[:-130]
 
-	for i_entry, entry_train in enumerate(input_csv):
-		print(f"entrada: {entry_train} - saida: {model.feedforward(entry_train)} - esperado: {target_csv[i_entry]}")
+	target_data = np.load('./caracteres/Y_classe.npy')
 
-	model.train(input_csv, target_csv)
+	print("taxa de acerto no conjundo de treinamento antes do treino")
+	taxa = model.classification_accuracy(input_data, target_data) * 100
+	print(f"{taxa:.3f}%")
 
-	print("saida depois do treino")
-	for i_entry, entry_train in enumerate(input_csv):
-		print(f"entrada: {entry_train} - saida: {model.feedforward(entry_train)} - esperado: {target_csv[i_entry]}")
+	model.train(input_data, target_data)
+
+	print("Taxa de acerto no conjunto de treinamento depois do treino")
+	taxa = model.classification_accuracy(input_data, target_data) * 100
+	print(f"{taxa:.3f}%")
