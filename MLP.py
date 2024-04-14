@@ -122,14 +122,14 @@ class Model:
 		# Funções definidas dentro da função "train" a fim de garantir o escopo de acesso apenas à função train
 		
 		def apply_changes(delta) -> None:
-			for i in range(len(self.weights)):
-				self.weights[i] = self.weights[i] + delta[i]
+			for index in range(len(self.weights)):
+				self.weights[index] = self.weights[index] + delta[index]
 		
 		def check_to_calculate_accuracy(momentum: int, epoch: int, training_validation_proportion: float):
-			if training_validation_proportion == 1:
+			if training_validation_proportion == ONE:
 				return False
 			if momentum == INERTIA:
-				return (epoch + 1) % VALIDATION_INTERVAL == 0
+				return (epoch + ONE) % VALIDATION_INTERVAL == ZERO
 			else:
 				return True
 		
@@ -141,7 +141,7 @@ class Model:
 		#	* Conjunto de validação 'validation_set' (que é usado para calcular a acurácia do modelo com dados que não alimentem o treinamento)
 		
 		# levanta exceção em caso de 'training_validation_proportion' que impossibilite uma divisão do conjunto inicial 'input_set' 
-		if training_validation_proportion > 1 or training_validation_proportion < 0.5 :
+		if training_validation_proportion > ONE or training_validation_proportion < HALF :
 			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")
 		
 		training_slice_index = int(len(input_set)*training_validation_proportion)
@@ -160,8 +160,8 @@ class Model:
 		
 		# Salva os valores de correção dos pesos
 		delta = [
-			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + 1), 0, np.double),
-			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), 0, np.double)
+			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + ONE), ZERO, np.double),
+			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + ONE), ZERO, np.double)
 		]
 		
 		# ------------------------------------------------- #
@@ -170,12 +170,12 @@ class Model:
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
 		
 		for epoch in range(MAX_EPOCH):
-			if momentum == 0:
+			if momentum == ZERO:
 				break
 			
 			# Para cada índice, e dado do conjunto de treinamento: 
-			for i, entry in enumerate(training_set):
-				error = target[i] - self.feed_forward(entry)
+			for index, entry in enumerate(training_set):
+				error = target[index] - self.feed_forward(entry)
 				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
 				apply_changes(delta)
 			

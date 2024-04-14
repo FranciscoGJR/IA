@@ -1,6 +1,7 @@
 BIAS = 1
 
 # Numbers
+HALF = 0.5
 ZERO = 0
 ONE = 1
 
