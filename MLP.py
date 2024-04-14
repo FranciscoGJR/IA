@@ -2,51 +2,49 @@
 # BRUNO LEITE DE ANDRADE - 11369642
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 # IGOR AUGUSTO DOS SANTOS - 11796851
-# 
 # + ...
 
 import numpy as np
 import numpy.typing as npt
-from math import inf
-from typing import List
 import pandas as pd
-from random import shuffle
-
 from constants import *
+from math import inf
+from random import shuffle
+from typing import List
+
 
 # ARQUITETURA:
 
 # TODO: Avaliar possibilidade de mover definição de arquitetura para dentro da classe 'Model', a fim de possibilitar melhor automação de testes parâmetricos
 
-NO_NODES_INPUT = 120
-NO_NODES_HIDDEN = 42
-NO_NODES_OUTPUT = 26
-MAX_EPOCH = 75
-VALIDATION_INTERVAL = 5
-INERTIA = 6
-ERROR_TOLERANCE = 0.15
-
-# TODO: implementar função de alfa
-LEARNING_RATE = lambda x: 0.1
-
-# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
-ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
-ACTIVATE_DERIVATIVE = lambda x: ACTIVATE(x) * (1 - ACTIVATE(x))
-
-# Alternativamente, pode se usar:
-#ACTIVATE = lambda x: np.maximum(0, x)
-#ACTIVATE_DERIVATIVE = lambda x: np.where(x > 0, 1, 0)
-
-
 class Model:
+
+	NO_NODES_INPUT = 120
+	NO_NODES_HIDDEN = 42
+	NO_NODES_OUTPUT = 26
+	MAX_EPOCH = 100
+	VALIDATION_INTERVAL = 5
+	INERTIA = 6
+	ERROR_TOLERANCE = 0.15
+
+	# TODO: implementar função de alfa
+	LEARNING_RATE = lambda x: 0.1
+
+	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
+	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
+	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
+
+	# Alternativamente, pode se usar:
+	#ACTIVATE = lambda x: np.maximum(0, x)
+	#ACTIVATE_DERIVATIVE = lambda x: np.where(x > 0, 1, 0)
 
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
 		
 		# Espaço de memória dos neurônios
 		self.nodes = [
-			np.zeros(NO_NODES_INPUT, np.double),
-			np.zeros(NO_NODES_HIDDEN, np.double),
-			np.zeros(NO_NODES_OUTPUT, np.double)
+			np.zeros(Model.NO_NODES_INPUT, np.double),
+			np.zeros(Model.NO_NODES_HIDDEN, np.double),
+			np.zeros(Model.NO_NODES_OUTPUT, np.double)
 		]
 		
 		# Inicialização dos pesos nas camadas entre os neurônios
@@ -54,16 +52,15 @@ class Model:
 		if w is None:
 			self.weights = \
 			[
-				np.random.randn(NO_NODES_HIDDEN, NO_NODES_INPUT + 1) * 0.01,
-				np.random.randn(NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1) * 0.01
+				np.random.randn(Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + 1) * 0.01,
+				np.random.randn(Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + 1) * 0.01
 			]
 		else:
 			self.weights = \
 			[
-				np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + 1), w[0], np.double),
-				np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), w[1], np.double)
+				np.full((Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + 1), w[0], np.double),
+				np.full((Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + 1), w[1], np.double)
 			]
-
 
 	def feed_forward(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
 
@@ -76,7 +73,7 @@ class Model:
 			layer_output = np.dot(self.weights[previus_layer], np.append(self.nodes[previus_layer], BIAS))
 
 			# aplica a função de ativação na camada de neurônios
-			self.nodes[current_layer] = np.vectorize(ACTIVATE)(layer_output)
+			self.nodes[current_layer] = np.vectorize(Model.ACTIVATE)(layer_output)
 
 		return self.nodes[OUTPUT_LAYER]
 
@@ -87,9 +84,9 @@ class Model:
 
 		for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
 			neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
-			error_correction = error[current_neuron] * ACTIVATE_DERIVATIVE(neuron_input)
+			error_correction = error[current_neuron] * Model.ACTIVATE_DERIVATIVE(neuron_input)
 			error_info.append(error_correction)
-			delta[LAST][current_neuron] = LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+			delta[LAST][current_neuron] = Model.LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
 
 		for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
 			sum = ZERO
@@ -98,8 +95,8 @@ class Model:
 				sum += er * self.weights[LAST][ie][current_neuron]
 
 			neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
-			error_correction = sum * ACTIVATE_DERIVATIVE(neuron_input)
-			delta[FIRST][current_neuron] = LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+			error_correction = sum * Model.ACTIVATE_DERIVATIVE(neuron_input)
+			delta[FIRST][current_neuron] = Model.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
 
 
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
@@ -128,8 +125,8 @@ class Model:
 		def check_to_calculate_accuracy(momentum: int, epoch: int, training_validation_proportion: float):
 			if training_validation_proportion == ONE:
 				return False
-			if momentum == INERTIA:
-				return (epoch + ONE) % VALIDATION_INTERVAL == ZERO
+			if momentum == Model.INERTIA:
+				return (epoch + ONE) % Model.VALIDATION_INTERVAL == ZERO
 			else:
 				return True
 		
@@ -137,13 +134,14 @@ class Model:
 		# -------- Definição de parâmetros gerais --------- #
 		
 		# O argumento training_validation_proportion tem por objetivo dividir o conjunto inicial de input em dois subconjuntos:
+		# TODO: Delegar essa funcionalidade para outra função
 		#	* Conjunto de treinamento 'training_set' (que efetivamente alimenta o cálculo dos erros)
 		#	* Conjunto de validação 'validation_set' (que é usado para calcular a acurácia do modelo com dados que não alimentem o treinamento)
 		
 		# levanta exceção em caso de 'training_validation_proportion' que impossibilite uma divisão do conjunto inicial 'input_set' 
 		if training_validation_proportion > ONE or training_validation_proportion < HALF :
-			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")
-		
+			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")		
+				
 		training_slice_index = int(len(input_set)*training_validation_proportion)
 		shuffle_index_range = list(range(len(input_set))) 
 		shuffle(shuffle_index_range)
@@ -153,15 +151,15 @@ class Model:
 		validation_set = input_set[training_slice_index:]
 		
 		# Variável "momentum" é usada para realizar a validação 'INERTIA' número de vezes, caso a validação tenha superado a validação anterior
-		momentum = INERTIA
+		momentum = Model.INERTIA
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
 		accuracy_timeline = [((self.classification_accuracy(validation_set, target[training_slice_index:]), -1, self.weights))]
 		
 		# Salva os valores de correção dos pesos
 		delta = [
-			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + ONE), ZERO, np.double),
-			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + ONE), ZERO, np.double)
+			np.full((Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + ONE), ZERO, np.double),
+			np.full((Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + ONE), ZERO, np.double)
 		]
 		
 		# ------------------------------------------------- #
@@ -169,7 +167,7 @@ class Model:
 		
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
 		
-		for epoch in range(MAX_EPOCH):
+		for epoch in range(Model.MAX_EPOCH):
 			if momentum == ZERO:
 				break
 			
@@ -183,9 +181,9 @@ class Model:
 			if check_to_calculate_accuracy(momentum, epoch, training_validation_proportion): 
 				current_accuracy = self.classification_accuracy(validation_set, target[training_slice_index:]), epoch, self.weights 
 				accuracy_timeline.append(current_accuracy)
-				if accuracy_timeline[-1][0] > 1 - ERROR_TOLERANCE or momentum < INERTIA:
+				if accuracy_timeline[-1][0] > 1 - Model.ERROR_TOLERANCE or momentum < Model.INERTIA:
 					if accuracy_timeline[-1][0] > accuracy_timeline[-2][0]:
-						momentum = INERTIA - 1
+						momentum = Model.INERTIA - 1
 					else:
 						momentum -= 1
 		
