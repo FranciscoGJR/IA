@@ -3,7 +3,7 @@
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 # IGOR AUGUSTO DOS SANTOS - 11796851
 # + ...
-
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -20,13 +20,13 @@ class Model:
 	NO_NODES_INPUT = 120
 	NO_NODES_HIDDEN = 42
 	NO_NODES_OUTPUT = 26
-	MAX_EPOCH = 100
-	VALIDATION_INTERVAL = 5
+	DEFAULT_MAX_EPOCH = 100
+	VALIDATION_INTERVAL = 1
 	INERTIA = 6
 	ERROR_TOLERANCE = 0.15
 
 	# TODO: implementar função de alfa
-	LEARNING_RATE = lambda x: 0.1
+	LEARNING_RATE = lambda x: 0.5
 
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
@@ -37,7 +37,11 @@ class Model:
 	#ACTIVATE_DERIVATIVE = lambda x: np.where(x > 0, 1, 0)
 
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
-		
+		# armazena no modelo as informações de cada erro
+		self.epoch_errors = []
+		self.validation_error = []
+
+
 		# Espaço de memória dos neurônios
 		self.nodes = [
 			np.zeros(Model.NO_NODES_INPUT, np.double),
@@ -99,27 +103,48 @@ class Model:
 
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
 		correct = ZERO
+		total_error = ZERO
 		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
+			error = target[index] - output
+			total_error += self.layer_error(error)
 			if np.argmax(output) == np.argmax(target[index]):
 				correct += ONE
-		return correct / len(test_set)
 
+		avg_error = total_error / len(test_set)
+		return {'accuracy': correct / len(test_set), 'error': avg_error}
+
+	# função auxiliar para calcular o erro quadrático médio
+	def layer_error(self, error: npt.NDArray[np.double]) -> np.double:
+		avg_error = error ** 2
+		avg_error = np.sum(avg_error) ** 0.5
+		return avg_error
+
+	def plot_error(self) -> None:
+		# Exibe o gráfico com os erros de cada época, no treino e na validação
+		plt.plot(self.epoch_errors, label='Treinamento')
+		validation_errors = [x['error'] for x in self.validation_error]
+		validation_epochs = [x['epoch'] for x in self.validation_error]
+		plt.plot(validation_epochs, validation_errors, label='Validação')
+		plt.xlabel('Época')
+		plt.ylabel('Erro')
+		plt.legend()
+		plt.show()
 
 	def average_error(self, data, data_target) -> float:
 		 return np.average(np.absolute(data_target - self.feed_forward(data)))
-	
-	def train(self, input_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]], training_validation_proportion: float = 2/3) -> List[npt.NDArray[np.double]]:
+
+	def train(self, input_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]], training_validation_proportion: float = 2/3, max_epoch: int = DEFAULT_MAX_EPOCH) -> List[npt.NDArray[np.double]]:
 		
 		# ------------------------------------------------- #
 		# --- Definição de funções ajudantes de `train` --- #
 		
 		# Funções definidas dentro da função "train" a fim de garantir o escopo de acesso apenas à função train
-		
+
 		def apply_changes(delta) -> None:
 			for index in range(len(self.weights)):
 				self.weights[index] = self.weights[index] + delta[index]
-		
+
 		def check_to_calculate_accuracy(momentum: int, epoch: int, training_validation_proportion: float):
 			if training_validation_proportion == ONE:
 				return False
@@ -152,7 +177,7 @@ class Model:
 		momentum = Model.INERTIA
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
-		accuracy_timeline = [((self.classification_accuracy(validation_set, target[training_slice_index:]), -1, self.weights))]
+		accuracy_timeline = [((self.classification_accuracy(validation_set, target[training_slice_index:])['accuracy'], -1, self.weights))]
 		
 		# Salva os valores de correção dos pesos
 		delta = [
@@ -164,28 +189,33 @@ class Model:
 		# -------------- Loop de Treinamento -------------- #
 		
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
-		progress_bar = tqdm.trange(Model.MAX_EPOCH, ncols=100)
+		progress_bar = tqdm.trange(max_epoch, ncols=150)
 		for epoch in progress_bar:
 			if momentum == ZERO:
 				break
-			
+			total_error = ZERO
 			# Para cada índice, e dado do conjunto de treinamento: 
 			for index, entry in enumerate(training_set):
 				error = target[index] - self.feed_forward(entry)
+				total_error += self.layer_error(error)
 				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
 				apply_changes(delta)
-			
+
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
-			if check_to_calculate_accuracy(momentum, epoch, training_validation_proportion): 
-				current_accuracy = self.classification_accuracy(validation_set, target[training_slice_index:]), epoch, self.weights 
+			if check_to_calculate_accuracy(momentum, epoch, training_validation_proportion):
+				classification_accuracy_result = self.classification_accuracy(validation_set, target[training_slice_index:])
+				current_accuracy = classification_accuracy_result['accuracy'], epoch, self.weights
 				accuracy_timeline.append(current_accuracy)
+				self.validation_error.append({'epoch': epoch, 'error': classification_accuracy_result['error']})
 				if accuracy_timeline[-1][0] > 1 - Model.ERROR_TOLERANCE or momentum < Model.INERTIA:
 					if accuracy_timeline[-1][0] > accuracy_timeline[-2][0]:
 						momentum = Model.INERTIA - 1
 					else:
 						momentum -= 1
 
-			progress_bar.set_description(f"Epoch: {epoch} - Accuracy: {accuracy_timeline[-1][0]:.3f}")
+			mean_error = total_error / len(training_set)
+			self.epoch_errors.append(mean_error)
+			progress_bar.set_description(f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f} - Acurácia: {accuracy_timeline[-1][0]:.3f}")
 		return accuracy_timeline
 
 	def __repr__(self):
@@ -211,14 +241,19 @@ if __name__ == '__main__':
 	input_data = input_data[:-130]
 	target_data = target_data[:-130]
 	
-	taxa = model.classification_accuracy(input_data, target_data) * 100
+	taxa = model.classification_accuracy(input_data, target_data)['accuracy'] * 100
 	print("taxa de acerto no conjunto de treinamento antes do treino: " + f"{taxa:.3f}%")
 	
 	acc = []		
 	
 	try:	
 		acc = model.train(input_data, target_data)
+		model.plot_error()
+	except KeyboardInterrupt:
+		model.plot_error()
 
+	except Exception as e:
+		print(e)
 	finally:
 		print(*[f'{(100*m[0])}% -> epoch: {m[1]}' for m in acc], sep='\n')
 
