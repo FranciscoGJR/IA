@@ -63,10 +63,10 @@ class Model:
 		self.nodes[INPUT_LAYER] = data
 
 		for current_layer in range(HIDDEN_LAYER, len(self.nodes)):
-			previus_layer = current_layer - ONE
+			previous_layer = current_layer - ONE
 
 			# Calcula o produto escalar entre todos neurônios de chegada e seus respectivos pesos (função de agregação)
-			layer_output = np.dot(self.weights[previus_layer], np.append(self.nodes[previus_layer], BIAS))
+			layer_output = np.dot(self.weights[previous_layer], np.append(self.nodes[previous_layer], BIAS))
 
 			# aplica a função de ativação na camada de neurônios
 			self.nodes[current_layer] = np.vectorize(Model.ACTIVATE)(layer_output)
