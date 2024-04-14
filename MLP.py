@@ -21,12 +21,12 @@ class Model:
 	NO_NODES_HIDDEN = 42
 	NO_NODES_OUTPUT = 26
 	DEFAULT_MAX_EPOCH = 100
-	VALIDATION_INTERVAL = 1
+	VALIDATION_INTERVAL = 5
 	INERTIA = 6
 	ERROR_TOLERANCE = 0.15
 
 	# TODO: implementar função de alfa
-	LEARNING_RATE = lambda x: 0.5
+	LEARNING_RATE = lambda x: 0.1
 
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
