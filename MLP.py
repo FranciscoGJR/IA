@@ -103,13 +103,14 @@ class Model:
 
 
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
-		correct = 0
-		for i, entry in enumerate(test_set):
+		correct = ZERO
+		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
-			if np.argmax(output) == np.argmax(target[i]):
-				correct += 1
+			if np.argmax(output) == np.argmax(target[index]):
+				correct += ONE
 		return correct / len(test_set)
-		
+
+
 	def average_error(self, data, data_target) -> float:
 		 return np.average(np.absolute(data_target - self.feed_forward(data)))
 	
