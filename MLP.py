@@ -13,10 +13,6 @@ from random import shuffle
 from typing import List
 
 
-# ARQUITETURA:
-
-# TODO: Avaliar possibilidade de mover definição de arquitetura para dentro da classe 'Model', a fim de possibilitar melhor automação de testes parâmetricos
-
 class Model:
 
 	NO_NODES_INPUT = 120
@@ -77,7 +73,7 @@ class Model:
 
 		return self.nodes[OUTPUT_LAYER]
 
-
+	# TODO: Considerar retornar "delta", ao invés de receber como parâmetro
 	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
 
 		error_info = []
@@ -196,6 +192,11 @@ class Model:
 		return self.weights
 
 
+# TODO: Função retorna uma nova classe extendida de Model, com os parâmetros de configuração kwargs
+def from_architecture(**kwargs):
+	pass
+
+
 # main
 if __name__ == '__main__':
 		
@@ -217,5 +218,15 @@ if __name__ == '__main__':
 
 	finally:
 		print(*[f'{(100*m[0])}% -> epoch: {m[1]}' for m in acc], sep='\n')
+
+		exit()
+
+		training_slice_index = int(len(input_set)*training_validation_proportion)
+		shuffle_index_range = list(range(len(input_set))) 
+		shuffle(shuffle_index_range)
+		input_set = input_set[shuffle_index_range]
+		target = target[shuffle_index_range]
+		training_set = input_set[:training_slice_index]
+		validation_set = input_set[training_slice_index:]
 
 
