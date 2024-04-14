@@ -1,4 +1,4 @@
-# EP ACH2016 - "IA" | Turma 04
+# EP ACH2016 - "IA" | TURMA 04
 # BRUNO LEITE DE ANDRADE - 11369642
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 # IGOR AUGUSTO DOS SANTOS - 11796851
@@ -14,6 +14,8 @@ from random import shuffle
 
 # ARQUITETURA:
 
+# TODO: Avaliar possibilidade de mover definição de arquitetura para dentro da classe 'Model', a fim de possibilitar melhor automação de testes parâmetricos
+
 NO_NODES_INPUT = 120
 NO_NODES_HIDDEN = 42
 NO_NODES_OUTPUT = 26
@@ -21,6 +23,8 @@ MAX_EPOCH = 150
 VALIDATION_INTERVAL = 5
 INERTIA = 6
 ERROR_TOLERANCE = 0.15
+
+# TODO: implementar função de alfa
 LEARNING_RATE = lambda x: 0.1
 
 # Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
@@ -36,12 +40,15 @@ class Model:
 
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
 		
+		# Espaço de memória dos neurônios
 		self.nodes = [
 			np.zeros(NO_NODES_INPUT, np.double),
 			np.zeros(NO_NODES_HIDDEN, np.double),
 			np.zeros(NO_NODES_OUTPUT, np.double)
 		]
-
+		
+		# Inicialização dos pesos nas camadas entre os neurônios
+		# Caso a função de inicialização não receba o argumento "w", inicializa o modelo com pesos aleatórios
 		if w is None:
 			self.weights = \
 			[
@@ -56,17 +63,18 @@ class Model:
 			]
 
 	def feed_forward(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
-
+		
 		self.nodes[0] = data
+		
 		for i in range(1, len(self.nodes)):
-			hidden_out = np.dot(self.weights[i-1], np.append(self.nodes[i-1], 1))
-			self.nodes[i] = np.vectorize(ACTIVATE)(hidden_out)
-
+		
+			# Calcula o produto escalar entre todos neurônios de chegada e seus respectivos pesos (função de agregação)
+			layer_output = np.dot(self.weights[i-1], np.append(self.nodes[i-1], 1))
+			
+			# aplica a função de ativação na camada de neurônios
+			self.nodes[i] = np.vectorize(ACTIVATE)(layer_output)
+		
 		return self.nodes[-1]
-
-	def __apply_changes(self, delta) -> None:
-		for i in range(len(self.weights)):
-			self.weights[i] = self.weights[i] + delta[i]
 
 	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
 		
@@ -101,8 +109,14 @@ class Model:
 	
 	def train(self, input_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]], training_validation_proportion: float = 2/3) -> List[npt.NDArray[np.double]]:
 		
-		if training_validation_proportion > 1 or training_validation_proportion < 0.5 :
-			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")
+		# ------------------------------------------------- #
+		# --- Definição de funções ajudantes de `train` --- #
+		
+		# Funções definidas dentro da função "train" a fim de garantir o escopo de acesso apenas à função train
+		
+		def apply_changes(delta) -> None:
+			for i in range(len(self.weights)):
+				self.weights[i] = self.weights[i] + delta[i]
 		
 		def check_to_calculate_accuracy(momentum: int, epoch: int, training_validation_proportion: float):
 			if training_validation_proportion == 1:
@@ -112,31 +126,53 @@ class Model:
 			else:
 				return True
 		
-		training_slice_index = int(len(input_set)*2/3)
+		# ------------------------------------------------- #
+		# -------- Definição de parâmetros gerais --------- #
+		
+		# O argumento training_validation_proportion tem por objetivo dividir o conjunto inicial de input em dois subconjuntos:
+		#	* Conjunto de treinamento 'training_set' (que efetivamente alimenta o cálculo dos erros)
+		#	* Conjunto de validação 'validation_set' (que é usado para calcular a acurácia do modelo com dados que não alimentem o treinamento)
+		
+		# levanta exceção em caso de 'training_validation_proportion' que impossibilite uma divisão do conjunto inicial 'input_set' 
+		if training_validation_proportion > 1 or training_validation_proportion < 0.5 :
+			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")
+		
+		training_slice_index = int(len(input_set)*training_validation_proportion)
 		shuffle_index_range = list(range(len(input_set))) 
 		shuffle(shuffle_index_range)
 		input_set = input_set[shuffle_index_range]
 		target = target[shuffle_index_range]
 		training_set = input_set[:training_slice_index]
 		validation_set = input_set[training_slice_index:]
+		
+		# Variável "momentum" é usada para realizar a validação 'INERTIA' número de vezes, caso a validação tenha superado a validação anterior
+		momentum = INERTIA
+		
+		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
 		accuracy_timeline = [((self.classification_accuracy(validation_set, target[training_slice_index:]), -1, self.weights))]
 		
+		# Salva os valores de correção dos pesos
 		delta = [
 			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + 1), 0, np.double),
 			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), 0, np.double)
 		]
 		
-		momentum = INERTIA
+		# ------------------------------------------------- #
+		# -------------- Loop de Treinamento -------------- #
+		
+		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
 		
 		for epoch in range(MAX_EPOCH):
 			if momentum == 0:
 				break
 			
+			# Para cada índice, e dado do conjunto de treinamento: 
 			for i, entry in enumerate(training_set):
 				error = target[i] - self.feed_forward(entry)
-				self.__backpropagation(error, delta, epoch)
-				self.__apply_changes(delta)
+				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
+				apply_changes(delta)
 			
+			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
 			if check_to_calculate_accuracy(momentum, epoch, training_validation_proportion): 
 				current_accuracy = self.classification_accuracy(validation_set, target[training_slice_index:]), epoch, self.weights 
 				accuracy_timeline.append(current_accuracy)
