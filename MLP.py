@@ -12,6 +12,8 @@ from typing import List
 import pandas as pd
 from random import shuffle
 
+from constants import *
+
 # ARQUITETURA:
 
 # TODO: Avaliar possibilidade de mover definição de arquitetura para dentro da classe 'Model', a fim de possibilitar melhor automação de testes parâmetricos
@@ -62,19 +64,21 @@ class Model:
 				np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), w[1], np.double)
 			]
 
+
 	def feed_forward(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
-		
-		self.nodes[0] = data
-		
-		for i in range(1, len(self.nodes)):
-		
+
+		self.nodes[INPUT_LAYER] = data
+
+		for current_layer in range(HIDDEN_LAYER, len(self.nodes)):
+			previus_layer = current_layer - ONE
+
 			# Calcula o produto escalar entre todos neurônios de chegada e seus respectivos pesos (função de agregação)
-			layer_output = np.dot(self.weights[i-1], np.append(self.nodes[i-1], 1))
-			
+			layer_output = np.dot(self.weights[previus_layer], np.append(self.nodes[previus_layer], BIAS))
+
 			# aplica a função de ativação na camada de neurônios
-			self.nodes[i] = np.vectorize(ACTIVATE)(layer_output)
-		
-		return self.nodes[-1]
+			self.nodes[current_layer] = np.vectorize(ACTIVATE)(layer_output)
+
+		return self.nodes[OUTPUT_LAYER]
 
 	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
 		
