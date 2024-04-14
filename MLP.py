@@ -12,6 +12,8 @@ from typing import List
 import pandas as pd
 from random import shuffle
 
+from constants import *
+
 # ARQUITETURA:
 
 # TODO: Avaliar possibilidade de mover definição de arquitetura para dentro da classe 'Model', a fim de possibilitar melhor automação de testes parâmetricos
@@ -19,7 +21,7 @@ from random import shuffle
 NO_NODES_INPUT = 120
 NO_NODES_HIDDEN = 42
 NO_NODES_OUTPUT = 26
-MAX_EPOCH = 150
+MAX_EPOCH = 75
 VALIDATION_INTERVAL = 5
 INERTIA = 6
 ERROR_TOLERANCE = 0.15
@@ -62,48 +64,53 @@ class Model:
 				np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), w[1], np.double)
 			]
 
+
 	def feed_forward(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
-		
-		self.nodes[0] = data
-		
-		for i in range(1, len(self.nodes)):
-		
+
+		self.nodes[INPUT_LAYER] = data
+
+		for current_layer in range(HIDDEN_LAYER, len(self.nodes)):
+			previus_layer = current_layer - ONE
+
 			# Calcula o produto escalar entre todos neurônios de chegada e seus respectivos pesos (função de agregação)
-			layer_output = np.dot(self.weights[i-1], np.append(self.nodes[i-1], 1))
-			
+			layer_output = np.dot(self.weights[previus_layer], np.append(self.nodes[previus_layer], BIAS))
+
 			# aplica a função de ativação na camada de neurônios
-			self.nodes[i] = np.vectorize(ACTIVATE)(layer_output)
-		
-		return self.nodes[-1]
+			self.nodes[current_layer] = np.vectorize(ACTIVATE)(layer_output)
+
+		return self.nodes[OUTPUT_LAYER]
+
 
 	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
-		
-		error_info = []
-		
-		for i, neuron in enumerate(self.nodes[-1]):
-			neuron_input = np.dot(self.weights[-1][i], np.append(self.nodes[-2], 1))
-			error_correction = error[i] * ACTIVATE_DERIVATIVE(neuron_input)
-			error_info.append(error_correction)
-			delta[-1][i] = LEARNING_RATE(1) * error_correction * np.append(self.nodes[-2], 1)
 
-		for i, neuron in enumerate(self.nodes[-2]):
-			soma = 0
-			
+		error_info = []
+
+		for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
+			neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
+			error_correction = error[current_neuron] * ACTIVATE_DERIVATIVE(neuron_input)
+			error_info.append(error_correction)
+			delta[LAST][current_neuron] = LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+
+		for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
+			sum = ZERO
+
 			for ie, er in enumerate(error_info):
-				soma += er * self.weights[-1][ie][i]
-			
-			neuron_input = np.dot(self.weights[0][i], np.append(self.nodes[-3], 1))
-			error_correction = soma * ACTIVATE_DERIVATIVE(neuron_input)
-			delta[-2][i] = LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[-3], 1)
-	
+				sum += er * self.weights[LAST][ie][current_neuron]
+
+			neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
+			error_correction = sum * ACTIVATE_DERIVATIVE(neuron_input)
+			delta[FIRST][current_neuron] = LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+
+
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
-		correct = 0
-		for i, entry in enumerate(test_set):
+		correct = ZERO
+		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
-			if np.argmax(output) == np.argmax(target[i]):
-				correct += 1
+			if np.argmax(output) == np.argmax(target[index]):
+				correct += ONE
 		return correct / len(test_set)
-		
+
+
 	def average_error(self, data, data_target) -> float:
 		 return np.average(np.absolute(data_target - self.feed_forward(data)))
 	
@@ -115,14 +122,14 @@ class Model:
 		# Funções definidas dentro da função "train" a fim de garantir o escopo de acesso apenas à função train
 		
 		def apply_changes(delta) -> None:
-			for i in range(len(self.weights)):
-				self.weights[i] = self.weights[i] + delta[i]
+			for index in range(len(self.weights)):
+				self.weights[index] = self.weights[index] + delta[index]
 		
 		def check_to_calculate_accuracy(momentum: int, epoch: int, training_validation_proportion: float):
-			if training_validation_proportion == 1:
+			if training_validation_proportion == ONE:
 				return False
 			if momentum == INERTIA:
-				return (epoch + 1) % VALIDATION_INTERVAL == 0
+				return (epoch + ONE) % VALIDATION_INTERVAL == ZERO
 			else:
 				return True
 		
@@ -134,7 +141,7 @@ class Model:
 		#	* Conjunto de validação 'validation_set' (que é usado para calcular a acurácia do modelo com dados que não alimentem o treinamento)
 		
 		# levanta exceção em caso de 'training_validation_proportion' que impossibilite uma divisão do conjunto inicial 'input_set' 
-		if training_validation_proportion > 1 or training_validation_proportion < 0.5 :
+		if training_validation_proportion > ONE or training_validation_proportion < HALF :
 			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")
 		
 		training_slice_index = int(len(input_set)*training_validation_proportion)
@@ -153,8 +160,8 @@ class Model:
 		
 		# Salva os valores de correção dos pesos
 		delta = [
-			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + 1), 0, np.double),
-			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + 1), 0, np.double)
+			np.full((NO_NODES_HIDDEN, NO_NODES_INPUT + ONE), ZERO, np.double),
+			np.full((NO_NODES_OUTPUT, NO_NODES_HIDDEN + ONE), ZERO, np.double)
 		]
 		
 		# ------------------------------------------------- #
@@ -163,12 +170,12 @@ class Model:
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
 		
 		for epoch in range(MAX_EPOCH):
-			if momentum == 0:
+			if momentum == ZERO:
 				break
 			
 			# Para cada índice, e dado do conjunto de treinamento: 
-			for i, entry in enumerate(training_set):
-				error = target[i] - self.feed_forward(entry)
+			for index, entry in enumerate(training_set):
+				error = target[index] - self.feed_forward(entry)
 				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
 				apply_changes(delta)
 			
