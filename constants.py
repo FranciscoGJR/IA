@@ -4,6 +4,10 @@ BIAS = 1
 ZERO = 0
 ONE = 1
 
+# Indexs
+FIRST = 0
+LAST = -1
+
 # Layers
 INPUT_LAYER = 0
 HIDDEN_LAYER = 1

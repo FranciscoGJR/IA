@@ -21,7 +21,7 @@ from constants import *
 NO_NODES_INPUT = 120
 NO_NODES_HIDDEN = 42
 NO_NODES_OUTPUT = 26
-MAX_EPOCH = 150
+MAX_EPOCH = 75
 VALIDATION_INTERVAL = 5
 INERTIA = 6
 ERROR_TOLERANCE = 0.15
@@ -80,26 +80,28 @@ class Model:
 
 		return self.nodes[OUTPUT_LAYER]
 
-	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
-		
-		error_info = []
-		
-		for i, neuron in enumerate(self.nodes[-1]):
-			neuron_input = np.dot(self.weights[-1][i], np.append(self.nodes[-2], 1))
-			error_correction = error[i] * ACTIVATE_DERIVATIVE(neuron_input)
-			error_info.append(error_correction)
-			delta[-1][i] = LEARNING_RATE(1) * error_correction * np.append(self.nodes[-2], 1)
 
-		for i, neuron in enumerate(self.nodes[-2]):
-			soma = 0
-			
+	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
+
+		error_info = []
+
+		for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
+			neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
+			error_correction = error[current_neuron] * ACTIVATE_DERIVATIVE(neuron_input)
+			error_info.append(error_correction)
+			delta[LAST][current_neuron] = LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+
+		for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
+			sum = ZERO
+
 			for ie, er in enumerate(error_info):
-				soma += er * self.weights[-1][ie][i]
-			
-			neuron_input = np.dot(self.weights[0][i], np.append(self.nodes[-3], 1))
-			error_correction = soma * ACTIVATE_DERIVATIVE(neuron_input)
-			delta[-2][i] = LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[-3], 1)
-	
+				sum += er * self.weights[LAST][ie][current_neuron]
+
+			neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
+			error_correction = sum * ACTIVATE_DERIVATIVE(neuron_input)
+			delta[FIRST][current_neuron] = LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+
+
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
 		correct = 0
 		for i, entry in enumerate(test_set):
