@@ -7,6 +7,8 @@
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import tqdm
+
 from constants import *
 from math import inf
 from random import shuffle
@@ -162,8 +164,8 @@ class Model:
 		# -------------- Loop de Treinamento -------------- #
 		
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
-		
-		for epoch in range(Model.MAX_EPOCH):
+		progress_bar = tqdm.trange(Model.MAX_EPOCH, ncols=100)
+		for epoch in progress_bar:
 			if momentum == ZERO:
 				break
 			
@@ -182,7 +184,8 @@ class Model:
 						momentum = Model.INERTIA - 1
 					else:
 						momentum -= 1
-		
+
+			progress_bar.set_description(f"Epoch: {epoch} - Accuracy: {accuracy_timeline[-1][0]:.3f}")
 		return accuracy_timeline
 
 	def __repr__(self):
