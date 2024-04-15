@@ -134,7 +134,20 @@ class Model:
 	def average_error(self, data, data_target) -> float:
 		 return np.average(np.absolute(data_target - self.feed_forward(data)))
 
-	def train(self, input_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]], training_validation_proportion: float = 2/3, max_epoch: int = DEFAULT_MAX_EPOCH) -> List[npt.NDArray[np.double]]:
+	# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
+	def train(
+		self,
+		training_set: List[npt.NDArray[np.double]],
+		target_set: List[npt.NDArray[np.double]],
+		validation_set: List[npt.NDArray[np.double]] = [],
+		validation_target_set: List[npt.NDArray[np.double]] = []
+		) -> List[npt.NDArray[np.double]]:
+		
+		# levanta exceção em caso de inconsistência nos dados de entrada 
+		if len(training_set) != len(target_set) or len(validation_set) != len(validation_target_set):
+			raise ValueError(f"Arguments of train function don't match length requirements\n" + \
+				"'training_set' and 'target_set' lenghts should be equal, got{len(training_set), len(target_set)}.\n" +\
+				"'validation_set' and 'validation_target_set' lenghts should be equal, got{len(validation_set), len(validation_target_set)}.\n")
 		
 		# ------------------------------------------------- #
 		# --- Definição de funções ajudantes de `train` --- #
@@ -145,8 +158,9 @@ class Model:
 			for index in range(len(self.weights)):
 				self.weights[index] = self.weights[index] + delta[index]
 
-		def check_to_calculate_accuracy(momentum: int, epoch: int, training_validation_proportion: float):
-			if training_validation_proportion == ONE:
+		
+		def check_to_calculate_accuracy(momentum: int, epoch: int, validation_set_len: int) -> bool:
+			if validation_set_len == ZERO:
 				return False
 			if momentum == Model.INERTIA:
 				return (epoch + ONE) % Model.VALIDATION_INTERVAL == ZERO
@@ -154,30 +168,14 @@ class Model:
 				return True
 		
 		# ------------------------------------------------- #
-		# -------- Definição de parâmetros gerais --------- #
-		
-		# O argumento training_validation_proportion tem por objetivo dividir o conjunto inicial de input em dois subconjuntos:
-		# TODO: Delegar essa funcionalidade para outra função
-		#	* Conjunto de treinamento 'training_set' (que efetivamente alimenta o cálculo dos erros)
-		#	* Conjunto de validação 'validation_set' (que é usado para calcular a acurácia do modelo com dados que não alimentem o treinamento)
-		
-		# levanta exceção em caso de 'training_validation_proportion' que impossibilite uma divisão do conjunto inicial 'input_set' 
-		if training_validation_proportion > ONE or training_validation_proportion < HALF :
-			raise ValueError(f"Parameter 'training_validation_proportion' should be betwen 1 and 0.5, got {training_validation_proportion}")		
+		# -------- Definição de parâmetros gerais --------- #		
 				
-		training_slice_index = int(len(input_set)*training_validation_proportion)
-		shuffle_index_range = list(range(len(input_set))) 
-		shuffle(shuffle_index_range)
-		input_set = input_set[shuffle_index_range]
-		target = target[shuffle_index_range]
-		training_set = input_set[:training_slice_index]
-		validation_set = input_set[training_slice_index:]
-		
 		# Variável "momentum" é usada para realizar a validação 'INERTIA' número de vezes, caso a validação tenha superado a validação anterior
 		momentum = Model.INERTIA
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
 		accuracy_timeline = [((self.classification_accuracy(validation_set, target[training_slice_index:])['accuracy'], -1, self.weights))]
+
 		
 		# Salva os valores de correção dos pesos
 		delta = [
@@ -189,7 +187,7 @@ class Model:
 		# -------------- Loop de Treinamento -------------- #
 		
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
-		progress_bar = tqdm.trange(max_epoch, ncols=150)
+		progress_bar = tqdm.trange(DEFAULT_MAX_EPOCH, ncols=150)
 		for epoch in progress_bar:
 			if momentum == ZERO:
 				break
@@ -198,35 +196,43 @@ class Model:
 			for index, entry in enumerate(training_set):
 				error = target[index] - self.feed_forward(entry)
 				total_error += self.layer_error(error)
+
 				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
 				apply_changes(delta)
 
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
-			if check_to_calculate_accuracy(momentum, epoch, training_validation_proportion):
+			if check_to_calculate_accuracy(momentum, epoch, len(validation_set)):
 				classification_accuracy_result = self.classification_accuracy(validation_set, target[training_slice_index:])
 				current_accuracy = classification_accuracy_result['accuracy'], epoch, self.weights
 				accuracy_timeline.append(current_accuracy)
 				self.validation_error.append({'epoch': epoch, 'error': classification_accuracy_result['error']})
+        
+        # TODO: fazer a checagem pelo erro médio, ao invés da acurácia
 				if accuracy_timeline[-1][0] > 1 - Model.ERROR_TOLERANCE or momentum < Model.INERTIA:
 					if accuracy_timeline[-1][0] > accuracy_timeline[-2][0]:
 						momentum = Model.INERTIA - 1
 					else:
 						momentum -= 1
-
-			mean_error = total_error / len(training_set)
+      # Se não houver critério de para antecipada, checa se houve alteração nos pesos na última época
+			#elif error_count_in_epoch == 0:
+			#	break
+			
+      mean_error = total_error / len(training_set)
 			self.epoch_errors.append(mean_error)
 			progress_bar.set_description(f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f} - Acurácia: {accuracy_timeline[-1][0]:.3f}")
+
 		return accuracy_timeline
 
 	def __repr__(self):
-		return (f'Model({self.weights})')
+		pass
+		#return '[np.asarray(' + repr(self.weights[0].tolist()) + '), np.asarray(' + repr(self.weights[1].tolist()) + ')]'
 		
 	def __str__(self):
-		return self.weights
+		return 
 
 
 # TODO: Função retorna uma nova classe extendida de Model, com os parâmetros de configuração kwargs
-def from_architecture(**kwargs):
+def from_architecture(**kwargs) -> type:
 	pass
 
 
@@ -234,37 +240,32 @@ def from_architecture(**kwargs):
 if __name__ == '__main__':
 		
 	model = Model()
-
-	input_data = np.load('./test/X.npy')
-	target_data = np.load('./test/Y_classe.npy')
-	# remove dados de teste
-	input_data = input_data[:-130]
-	target_data = target_data[:-130]
+	shuffled_indexes = list(range(1326))
+	shuffle(shuffled_indexes)
+	input_data = np.load('./test/X.npy')[shuffled_indexes]
+	target_data = np.load('./test/Y_classe.npy')[shuffled_indexes]
 	
-	taxa = model.classification_accuracy(input_data, target_data)['accuracy'] * 100
+	TRAINING_SET_SIZE = 882
+	VALIDATION_SET_SIZE = 294
+	TEST_SET_SIZE = 150
+	
+	training_set = input_data[:TRAINING_SET_SIZE]
+	training_target_set = target_data[:TRAINING_SET_SIZE]
+	validation_set = input_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE+VALIDATION_SET_SIZE]
+	validation_target_set = target_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE+VALIDATION_SET_SIZE]
+	test_set = input_data[-TEST_SET_SIZE:]
+	test_target_set = target_data[-TEST_SET_SIZE:]
+	taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
 	print("taxa de acerto no conjunto de treinamento antes do treino: " + f"{taxa:.3f}%")
 	
 	acc = []		
-	
+	acc = model.train(training_set, training_target_set, validation_set, validation_target_set)
 	try:	
-		acc = model.train(input_data, target_data)
+		acc = model.train(training_set, training_target_set, validation_set, validation_target_set)
 		model.plot_error()
 	except KeyboardInterrupt:
 		model.plot_error()
-
-	except Exception as e:
-		print(e)
 	finally:
-		print(*[f'{(100*m[0])}% -> epoch: {m[1]}' for m in acc], sep='\n')
-
-		exit()
-
-		training_slice_index = int(len(input_set)*training_validation_proportion)
-		shuffle_index_range = list(range(len(input_set))) 
-		shuffle(shuffle_index_range)
-		input_set = input_set[shuffle_index_range]
-		target = target[shuffle_index_range]
-		training_set = input_set[:training_slice_index]
-		validation_set = input_set[training_slice_index:]
-
-
+    	taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
+	  print("taxa de acerto no conjunto de treinamento antes do treino: " + f"{taxa:.3f}%")
+		print(*[f'{(100*m[0]):.6f}% -> epoch: {m[1]}' for m in acc], sep='\n')
