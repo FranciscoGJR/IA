@@ -25,20 +25,24 @@ class Model:
 	NO_NODES_INPUT = 120
 	NO_NODES_HIDDEN = 42
 	NO_NODES_OUTPUT = 26
+	CLASSIFICATION_THRESHOLD = 0.85
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 	
 	# ----------------------------------------------------------------------- #
-	# -------------- Definição de Arquitetura de treinamento ---------------- #
+	# -------------- Definição de arquitetura de treinamento ---------------- #
 	
-	DEFAULT_MAX_EPOCH = 100
-	VALIDATION_INTERVAL = 5
+	DEFAULT_MAX_EPOCH = 200
+	VALIDATION_INTERVAL = 12
 	INERTIA = 6
-	ERROR_TOLERANCE = 0.15
+	ERR_RATE_THRESHOLD = 0.2
+	AVG_ERROR_THRESHOLD = 0.3
+	MODEL_EARLY_STOP_CRITERIA = 'error_rate'
 	# TODO: implementar função de alfa
 	LEARNING_RATE = lambda x: 0.1
 	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
-
+	
+	
 	# Inicialização do modelo
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
 		# armazena no modelo as informações de cada erro
@@ -83,19 +87,25 @@ class Model:
 
 		return self.nodes[OUTPUT_LAYER]
 
-	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target_set: List[npt.NDArray[np.double]]):
+	def evaluate_model(self, test_set: List[npt.NDArray[np.double]], test_target_set: List[npt.NDArray[np.double]]):
 		correct = ZERO
 		total_error = ZERO
 		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
-			error = target_set[index] - output
+			error = test_target_set[index] - output
 			total_error += self.average_layer_error(error)
 			
-			if np.argmax(output) == np.argmax(target_set[index]): # Implementar função que calcula o "acerto"
+			# Checagem anterior:
+			#if np.argmax(output) == np.argmax(test_target_set[index]):
+			#	correct += ONE
+			
+			threshold_array = np.vectorize(lambda x: x >= Model.CLASSIFICATION_THRESHOLD)(output)
+			if sum(threshold_array) == 1 and np.where(threshold_array == 1) == np.where(test_target_set[index] == 1):
 				correct += ONE
 
 		avg_error = total_error / len(test_set)
-		return {'accuracy': correct / len(test_set), 'error': avg_error}
+		
+		return {'error_rate': 1 - (correct / len(test_set)), 'avg_error': avg_error}
 
 	# função auxiliar para calcular o erro quadrático médio
 	def average_layer_error(self, error: npt.NDArray[np.double]) -> np.double:
@@ -169,7 +179,7 @@ class Model:
 				
 			return delta
 		
-		def check_to_calculate_accuracy(momentum: int, epoch: int, validation_set_len: int) -> bool:
+		def check_to_evaluate(momentum: int, epoch: int, validation_set_len: int) -> bool:
 			if validation_set_len == ZERO:
 				return False
 			if momentum == Model.INERTIA:
@@ -184,14 +194,17 @@ class Model:
 		momentum = Model.INERTIA
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
-		accuracy_timeline = [((self.classification_accuracy(validation_set, validation_target_set)['accuracy'], -1, self.weights))]
+		training_timeline = [((self.evaluate_model(validation_set, validation_target_set), -1, self.weights))]
+		
+		# Helper dict
+		early_stop_map = {'error_rate': Model.ERR_RATE_THRESHOLD, 'avg_error': Model.AVG_ERROR_THRESHOLD}
 	
 		# ------------------------------------------------- #
 		# -------------- Loop de Treinamento -------------- #
 		
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de supressão da impressão de parâmetros do modelo a cada época (a fim de melhorar velocidade)
 		progress_bar = tqdm.trange(Model.DEFAULT_MAX_EPOCH, ncols=150)
-		for epoch in progress_bar:
+		for epoch in progress_bar: #range(Model.DEFAULT_MAX_EPOCH):
 			if momentum == ZERO:
 				break
 			total_error = ZERO
@@ -202,15 +215,13 @@ class Model:
 				apply_changes(backpropagation(error, epoch))
 
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
-			if check_to_calculate_accuracy(momentum, epoch, len(validation_set)):
-				classification_accuracy_result = self.classification_accuracy(validation_set, validation_target_set)
-				current_accuracy = classification_accuracy_result['accuracy'], epoch, self.weights
-				accuracy_timeline.append(current_accuracy)
-				self.validation_error.append({'epoch': epoch, 'error': classification_accuracy_result['error']})
-        
+			if check_to_evaluate(momentum, epoch, len(validation_set)):
+				evaluate_model_result = self.evaluate_model(validation_set, validation_target_set)
+				training_timeline.append((evaluate_model_result, epoch, self.weights))
+        	    	
         	# TODO: fazer a checagem pelo erro médio, ao invés da acurácia
-				if accuracy_timeline[-1][0] > 1 - Model.ERROR_TOLERANCE or momentum < Model.INERTIA:
-					if accuracy_timeline[-1][0] > accuracy_timeline[-2][0]:
+				if training_timeline[-1][0][Model.MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[Model.MODEL_EARLY_STOP_CRITERIA] or momentum < Model.INERTIA:
+					if training_timeline[-1][0][Model.MODEL_EARLY_STOP_CRITERIA] < training_timeline[-2][0][Model.MODEL_EARLY_STOP_CRITERIA]:
 						momentum = Model.INERTIA - 1
 					else:
 						momentum -= 1
@@ -218,11 +229,12 @@ class Model:
 			#elif error_count_in_epoch == 0:
 			#	break
 			
-			mean_error = total_error / len(training_set)
-			self.epoch_errors.append(mean_error)
-			progress_bar.set_description(f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f} - Acurácia: {accuracy_timeline[-1][0]:.3f}")
+			if verbose:
+				mean_error = total_error / len(training_set)
+				self.epoch_errors.append(mean_error)
+				progress_bar.set_description(f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f} - Acurácia: {training_timeline[-1][0]:.3f}")
 
-		return accuracy_timeline
+		return training_timeline
 
 	def __repr__(self):
 		pass
@@ -245,18 +257,18 @@ if __name__ == '__main__':
 	shuffle(shuffled_indexes)
 	input_data = np.load('./test/X.npy')[shuffled_indexes]
 	target_data = np.load('./test/Y_classe.npy')[shuffled_indexes]
-	
+
 	TRAINING_SET_SIZE = 882
 	VALIDATION_SET_SIZE = 294
 	TEST_SET_SIZE = 150
-	
+
 	training_set = input_data[:TRAINING_SET_SIZE]
 	training_target_set = target_data[:TRAINING_SET_SIZE]
 	validation_set = input_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE+VALIDATION_SET_SIZE]
 	validation_target_set = target_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE+VALIDATION_SET_SIZE]
 	test_set = input_data[-TEST_SET_SIZE:]
 	test_target_set = target_data[-TEST_SET_SIZE:]
-	taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
+	taxa = (1 -  model.evaluate_model(test_set, test_target_set)['error_rate']) * 100
 	print("taxa de acerto no conjunto de teste antes do treino: " + f"{taxa:.3f}%")
 	
 	acc = []		
@@ -267,8 +279,9 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		model.plot_error()
 	finally:
-		taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
-		print("taxa de acerto no conjunto de teste depois do treinamento: " + f"{taxa:.3f}%")
-		print(*[f'{(100*m[0]):.6f}% -> epoch: {m[1]}' for m in acc], sep='\n')
+		test_result = (model.evaluate_model(test_set, test_target_set))
+		print("taxa de acerto no conjunto de teste depois do treinamento: " + f"{(1 - test_result['error_rate']) * 100:.3f}%")
+		print("erro médio do conjunto de teste depois do treinamento: " + f"{test_result['avg_error']:.3f}%")
+		print(*[f'{(100*(1-m[0]["error_rate"])):.6f}% -> epoch: {m[1]}' for m in acc], sep='\n')
 
 
