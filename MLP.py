@@ -3,6 +3,8 @@
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 # IGOR AUGUSTO DOS SANTOS - 11796851
 # + ...
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -79,28 +81,6 @@ class Model:
 
 		return self.nodes[OUTPUT_LAYER]
 
-	# TODO: Considerar retornar "delta", ao invés de receber como parâmetro
-	def __backpropagation(self, error: npt.NDArray[np.double], delta, epoch) -> None:
-
-		error_info = []
-
-		for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
-			neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
-			error_correction = error[current_neuron] * Model.ACTIVATE_DERIVATIVE(neuron_input)
-			error_info.append(error_correction)
-			delta[LAST][current_neuron] = Model.LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
-
-		for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
-			sum = ZERO
-
-			for ie, er in enumerate(error_info):
-				sum += er * self.weights[LAST][ie][current_neuron]
-
-			neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
-			error_correction = sum * Model.ACTIVATE_DERIVATIVE(neuron_input)
-			delta[FIRST][current_neuron] = Model.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
-
-
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
 		correct = ZERO
 		total_error = ZERO
@@ -153,11 +133,36 @@ class Model:
 		# --- Definição de funções ajudantes de `train` --- #
 		
 		# Funções definidas dentro da função "train" a fim de garantir o escopo de acesso apenas à função train
-
+		
 		def apply_changes(delta) -> None:
 			for index in range(len(self.weights)):
 				self.weights[index] = self.weights[index] + delta[index]
 
+		def backpropagation(error: npt.NDArray[np.double], epoch) -> List[npt.NDArray[np.double]]:
+			
+			delta = [
+				np.full((Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + ONE), ZERO, np.double),
+				np.full((Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + ONE), ZERO, np.double)
+			]
+			error_info = []
+
+			for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
+				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
+				error_correction = error[current_neuron] * Model.ACTIVATE_DERIVATIVE(neuron_input)
+				error_info.append(error_correction)
+				delta[LAST][current_neuron] = Model.LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+
+			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
+				err_sum = ZERO
+
+				for ie, er in enumerate(error_info):
+					err_sum += er * self.weights[LAST][ie][current_neuron]
+
+				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
+				error_correction = err_sum * Model.ACTIVATE_DERIVATIVE(neuron_input)
+				delta[FIRST][current_neuron] = Model.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+				
+			return delta
 		
 		def check_to_calculate_accuracy(momentum: int, epoch: int, validation_set_len: int) -> bool:
 			if validation_set_len == ZERO:
@@ -175,14 +180,7 @@ class Model:
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
 		accuracy_timeline = [((self.classification_accuracy(validation_set, validation_target_set)['accuracy'], -1, self.weights))]
-
-		
-		# Salva os valores de correção dos pesos
-		delta = [
-			np.full((Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + ONE), ZERO, np.double),
-			np.full((Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + ONE), ZERO, np.double)
-		]
-		
+	
 		# ------------------------------------------------- #
 		# -------------- Loop de Treinamento -------------- #
 		
@@ -196,8 +194,7 @@ class Model:
 			for index, entry in enumerate(training_set):
 				error = training_target_set[index] - self.feed_forward(entry)
 				total_error += self.layer_error(error)
-				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
-				apply_changes(delta)
+				apply_changes(backpropagation(error, epoch))
 
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
 			if check_to_calculate_accuracy(momentum, epoch, len(validation_set)):
@@ -266,5 +263,5 @@ if __name__ == '__main__':
 		model.plot_error()
 	finally:
 		taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
-		print("taxa de acerto no conjunto de treinamento antes do treino: " + f"{taxa:.3f}%")
+		print("taxa de acerto no conjunto de teste depois do treinamento: " + f"{taxa:.3f}%")
 		print(*[f'{(100*m[0]):.6f}% -> epoch: {m[1]}' for m in acc], sep='\n')
