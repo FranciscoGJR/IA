@@ -52,9 +52,9 @@ class Model:
 
 		# Espaço de memória dos neurônios
 		self.nodes = [
-			np.zeros(Model.NO_NODES_INPUT, np.double),
-			np.zeros(Model.NO_NODES_HIDDEN, np.double),
-			np.zeros(Model.NO_NODES_OUTPUT, np.double)
+			np.zeros(type(self).NO_NODES_INPUT, np.double),
+			np.zeros(type(self).NO_NODES_HIDDEN, np.double),
+			np.zeros(type(self).NO_NODES_OUTPUT, np.double)
 		]
 		
 		# Inicialização dos pesos nas camadas entre os neurônios
@@ -62,14 +62,14 @@ class Model:
 		if w is None:
 			self.weights = \
 			[
-				np.random.randn(Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + 1) * 0.01,
-				np.random.randn(Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + 1) * 0.01
+				np.random.randn(type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + 1) * 0.01,
+				np.random.randn(type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + 1) * 0.01
 			]
 		else:
 			self.weights = \
 			[
-				np.full((Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + 1), w[0], np.double),
-				np.full((Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + 1), w[1], np.double)
+				np.full((type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + 1), w[0], np.double),
+				np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + 1), w[1], np.double)
 			]
 
 	def feed_forward(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
@@ -83,7 +83,7 @@ class Model:
 			layer_output = np.dot(self.weights[previous_layer], np.append(self.nodes[previous_layer], BIAS))
 
 			# aplica a função de ativação na camada de neurônios
-			self.nodes[current_layer] = np.vectorize(Model.ACTIVATE)(layer_output)
+			self.nodes[current_layer] = np.vectorize(type(self).ACTIVATE)(layer_output)
 
 		return self.nodes[OUTPUT_LAYER]
 
@@ -99,7 +99,7 @@ class Model:
 			#if np.argmax(output) == np.argmax(test_target_set[index]):
 			#	correct += ONE
 			
-			threshold_array = np.vectorize(lambda x: x >= Model.CLASSIFICATION_THRESHOLD)(output)
+			threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
 			if sum(threshold_array) == 1 and np.where(threshold_array == 1) == np.where(test_target_set[index] == 1):
 				correct += ONE
 
@@ -156,16 +156,16 @@ class Model:
 		def backpropagation(error: npt.NDArray[np.double], epoch) -> List[npt.NDArray[np.double]]:
 			
 			delta = [
-				np.full((Model.NO_NODES_HIDDEN, Model.NO_NODES_INPUT + ONE), ZERO, np.double),
-				np.full((Model.NO_NODES_OUTPUT, Model.NO_NODES_HIDDEN + ONE), ZERO, np.double)
+				np.full((type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + ONE), ZERO, np.double),
+				np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + ONE), ZERO, np.double)
 			]
 			error_info = []
 
 			for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
 				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
-				error_correction = error[current_neuron] * Model.ACTIVATE_DERIVATIVE(neuron_input)
+				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input)
 				error_info.append(error_correction)
-				delta[LAST][current_neuron] = Model.LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+				delta[LAST][current_neuron] = type(self).LEARNING_RATE(ONE) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
 
 			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
 				err_sum = ZERO
@@ -174,16 +174,16 @@ class Model:
 					err_sum += er * self.weights[LAST][ie][current_neuron]
 
 				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
-				error_correction = err_sum * Model.ACTIVATE_DERIVATIVE(neuron_input)
-				delta[FIRST][current_neuron] = Model.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input)
+				delta[FIRST][current_neuron] = type(self).LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
 				
 			return delta
 		
 		def check_to_evaluate(momentum: int, epoch: int, validation_set_len: int) -> bool:
 			if validation_set_len == ZERO:
 				return False
-			if momentum == Model.INERTIA:
-				return (epoch + ONE) % Model.VALIDATION_INTERVAL == ZERO
+			if momentum == type(self).INERTIA:
+				return (epoch + ONE) % type(self).VALIDATION_INTERVAL == ZERO
 			else:
 				return True
 		
@@ -191,20 +191,20 @@ class Model:
 		# -------- Definição de parâmetros gerais --------- #		
 				
 		# Variável "momentum" é usada para realizar a validação 'INERTIA' número de vezes, caso a validação tenha superado a validação anterior
-		momentum = Model.INERTIA
+		momentum = type(self).INERTIA
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
 		training_timeline = [((self.evaluate_model(validation_set, validation_target_set), -1, self.weights))]
 		
 		# Helper dict
-		early_stop_map = {'error_rate': Model.ERR_RATE_THRESHOLD, 'avg_error': Model.AVG_ERROR_THRESHOLD}
+		early_stop_map = {'error_rate': type(self).ERR_RATE_THRESHOLD, 'avg_error': type(self).AVG_ERROR_THRESHOLD}
 	
 		# ------------------------------------------------- #
 		# -------------- Loop de Treinamento -------------- #
 		
 		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de supressão da impressão de parâmetros do modelo a cada época (a fim de melhorar velocidade)
-		progress_bar = tqdm.trange(Model.DEFAULT_MAX_EPOCH, ncols=150)
-		for epoch in progress_bar: #range(Model.DEFAULT_MAX_EPOCH):
+		progress_bar = tqdm.trange(type(self).DEFAULT_MAX_EPOCH, ncols=50)
+		for epoch in progress_bar: #range(type(self).DEFAULT_MAX_EPOCH):
 			if momentum == ZERO:
 				break
 			total_error = ZERO
@@ -220,9 +220,9 @@ class Model:
 				training_timeline.append((evaluate_model_result, epoch, self.weights))
         	    	
         	# TODO: fazer a checagem pelo erro médio, ao invés da acurácia
-				if training_timeline[-1][0][Model.MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[Model.MODEL_EARLY_STOP_CRITERIA] or momentum < Model.INERTIA:
-					if training_timeline[-1][0][Model.MODEL_EARLY_STOP_CRITERIA] < training_timeline[-2][0][Model.MODEL_EARLY_STOP_CRITERIA]:
-						momentum = Model.INERTIA - 1
+				if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[type(self).MODEL_EARLY_STOP_CRITERIA] or momentum < type(self).INERTIA:
+					if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] < training_timeline[-2][0][type(self).MODEL_EARLY_STOP_CRITERIA]:
+						momentum = type(self).INERTIA - 1
 					else:
 						momentum -= 1
       		# Se não houver critério de para antecipada, checa se houve alteração nos pesos na última época
@@ -244,14 +244,29 @@ class Model:
 		return 
 
 
-# TODO: Função retorna uma nova classe extendida de Model, com os parâmetros de configuração kwargs
-def from_architecture(**kwargs) -> type:
-	pass
+def from_architecture(class_name: str, **kwargs) -> type:
+
+	intersect = list(filter(lambda attribute: attribute[:2] != '__', kwargs.keys() & Model.__dict__.keys()))
+	
+	if len(intersect) < len(kwargs):
+		raise ValueError(f'Dunder attributes and new atributes not allowed on creating a new Model class, got {kwargs}') 	 
+		
+	for parameter in kwargs.keys():
+		
+		if type(kwargs[parameter]) != type(Model.__dict__[parameter]):
+			
+			raise TypeError(f"All parameters given to 'from_architecture' must be of same type on Model class, received {parameter}: {type(kwargs[parameter])}, expected: {type(Model.__dict__[parameter])}")
+	
+	if ('ACTIVATE' in kwargs.keys() and 'ACTIVATE_DERIVATIVE' not in kwargs.keys()) or ('ACTIVATE_DERIVATIVE' in kwargs.keys() and 'ACTIVATE' not in kwargs.keys()):
+		 raise ValueError("If 'ACTIVATE' lambda function is given, then 'ACTIVATE_DERIVATIVE' must also be given")
+		 
+	print(kwargs)
+	return type(class_name, (Model,), kwargs)
 
 
 # main
 if __name__ == '__main__':
-		
+	
 	model = Model()
 	shuffled_indexes = list(range(1326))
 	shuffle(shuffled_indexes)
@@ -268,8 +283,9 @@ if __name__ == '__main__':
 	validation_target_set = target_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE+VALIDATION_SET_SIZE]
 	test_set = input_data[-TEST_SET_SIZE:]
 	test_target_set = target_data[-TEST_SET_SIZE:]
-	taxa = (1 -  model.evaluate_model(test_set, test_target_set)['error_rate']) * 100
-	print("taxa de acerto no conjunto de teste antes do treino: " + f"{taxa:.3f}%")
+	test_result = (model.evaluate_model(test_set, test_target_set))
+	print("taxa de acerto no conjunto de teste depois do treinamento: " + f"{(1 - test_result['error_rate']) * 100:.3f}%")
+	print("erro médio do conjunto de teste depois do treinamento: " + f"{test_result['avg_error']:.3f}%")
 	
 	acc = []		
 
