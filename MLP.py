@@ -19,25 +19,27 @@ from typing import List
 
 class Model:
 
+	# ------------------------------------------------------------------------------------- #
+	# -------------------- Definição de arquitetura estática do modelo -------------------- #
+
 	NO_NODES_INPUT = 120
 	NO_NODES_HIDDEN = 42
 	NO_NODES_OUTPUT = 26
+	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
+	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
+	
+	# ----------------------------------------------------------------------- #
+	# -------------- Definição de Arquitetura de treinamento ---------------- #
+	
 	DEFAULT_MAX_EPOCH = 100
 	VALIDATION_INTERVAL = 5
 	INERTIA = 6
 	ERROR_TOLERANCE = 0.15
-
 	# TODO: implementar função de alfa
 	LEARNING_RATE = lambda x: 0.1
-
-	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
-	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
 
-	# Alternativamente, pode se usar:
-	#ACTIVATE = lambda x: np.maximum(0, x)
-	#ACTIVATE_DERIVATIVE = lambda x: np.where(x > 0, 1, 0)
-
+	# Inicialização do modelo
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
 		# armazena no modelo as informações de cada erro
 		self.epoch_errors = []
@@ -81,21 +83,22 @@ class Model:
 
 		return self.nodes[OUTPUT_LAYER]
 
-	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
+	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target_set: List[npt.NDArray[np.double]]):
 		correct = ZERO
 		total_error = ZERO
 		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
-			error = target[index] - output
-			total_error += self.layer_error(error)
-			if np.argmax(output) == np.argmax(target[index]):
+			error = target_set[index] - output
+			total_error += self.average_layer_error(error)
+			
+			if np.argmax(output) == np.argmax(target_set[index]): # Implementar função que calcula o "acerto"
 				correct += ONE
 
 		avg_error = total_error / len(test_set)
 		return {'accuracy': correct / len(test_set), 'error': avg_error}
 
 	# função auxiliar para calcular o erro quadrático médio
-	def layer_error(self, error: npt.NDArray[np.double]) -> np.double:
+	def average_layer_error(self, error: npt.NDArray[np.double]) -> np.double:
 		avg_error = error ** 2
 		avg_error = np.sum(avg_error) ** 0.5
 		return avg_error
@@ -120,7 +123,8 @@ class Model:
 		training_set: List[npt.NDArray[np.double]],
 		target_set: List[npt.NDArray[np.double]],
 		validation_set: List[npt.NDArray[np.double]] = [],
-		validation_target_set: List[npt.NDArray[np.double]] = []
+		validation_target_set: List[npt.NDArray[np.double]] = [],
+		verbose: bool = False
 		) -> List[npt.NDArray[np.double]]:
 		
 		# levanta exceção em caso de inconsistência nos dados de entrada 
@@ -137,7 +141,8 @@ class Model:
 		def apply_changes(delta) -> None:
 			for index in range(len(self.weights)):
 				self.weights[index] = self.weights[index] + delta[index]
-
+		
+		# TODO: é possível aplicar as mudanças assim que o delta for calculado? eliminando a função `apply_changes`
 		def backpropagation(error: npt.NDArray[np.double], epoch) -> List[npt.NDArray[np.double]]:
 			
 			delta = [
@@ -184,7 +189,7 @@ class Model:
 		# ------------------------------------------------- #
 		# -------------- Loop de Treinamento -------------- #
 		
-		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
+		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de supressão da impressão de parâmetros do modelo a cada época (a fim de melhorar velocidade)
 		progress_bar = tqdm.trange(Model.DEFAULT_MAX_EPOCH, ncols=150)
 		for epoch in progress_bar:
 			if momentum == ZERO:
@@ -193,7 +198,7 @@ class Model:
 			# Para cada índice, e dado do conjunto de treinamento: 
 			for index, entry in enumerate(training_set):
 				error = training_target_set[index] - self.feed_forward(entry)
-				total_error += self.layer_error(error)
+				total_error += self.average_layer_error(error)
 				apply_changes(backpropagation(error, epoch))
 
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
@@ -265,3 +270,5 @@ if __name__ == '__main__':
 		taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
 		print("taxa de acerto no conjunto de teste depois do treinamento: " + f"{taxa:.3f}%")
 		print(*[f'{(100*m[0]):.6f}% -> epoch: {m[1]}' for m in acc], sep='\n')
+
+
