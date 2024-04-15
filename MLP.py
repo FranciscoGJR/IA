@@ -3,10 +3,12 @@
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 # IGOR AUGUSTO DOS SANTOS - 11796851
 # + ...
-
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import tqdm
+
 from constants import *
 from math import inf
 from random import shuffle
@@ -18,7 +20,7 @@ class Model:
 	NO_NODES_INPUT = 120
 	NO_NODES_HIDDEN = 42
 	NO_NODES_OUTPUT = 26
-	MAX_EPOCH = 100
+	DEFAULT_MAX_EPOCH = 100
 	VALIDATION_INTERVAL = 5
 	INERTIA = 6
 	ERROR_TOLERANCE = 0.15
@@ -35,7 +37,11 @@ class Model:
 	#ACTIVATE_DERIVATIVE = lambda x: np.where(x > 0, 1, 0)
 
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
-		
+		# armazena no modelo as informações de cada erro
+		self.epoch_errors = []
+		self.validation_error = []
+
+
 		# Espaço de memória dos neurônios
 		self.nodes = [
 			np.zeros(Model.NO_NODES_INPUT, np.double),
@@ -97,16 +103,37 @@ class Model:
 
 	def classification_accuracy(self, test_set: List[npt.NDArray[np.double]], target: List[npt.NDArray[np.double]]):
 		correct = ZERO
+		total_error = ZERO
 		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
+			error = target[index] - output
+			total_error += self.layer_error(error)
 			if np.argmax(output) == np.argmax(target[index]):
 				correct += ONE
-		return correct / len(test_set)
 
+		avg_error = total_error / len(test_set)
+		return {'accuracy': correct / len(test_set), 'error': avg_error}
+
+	# função auxiliar para calcular o erro quadrático médio
+	def layer_error(self, error: npt.NDArray[np.double]) -> np.double:
+		avg_error = error ** 2
+		avg_error = np.sum(avg_error) ** 0.5
+		return avg_error
+
+	def plot_error(self) -> None:
+		# Exibe o gráfico com os erros de cada época, no treino e na validação
+		plt.plot(self.epoch_errors, label='Treinamento')
+		validation_errors = [x['error'] for x in self.validation_error]
+		validation_epochs = [x['epoch'] for x in self.validation_error]
+		plt.plot(validation_epochs, validation_errors, label='Validação')
+		plt.xlabel('Época')
+		plt.ylabel('Erro')
+		plt.legend()
+		plt.show()
 
 	def average_error(self, data, data_target) -> float:
 		 return np.average(np.absolute(data_target - self.feed_forward(data)))
-	
+
 	# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
 	def train(
 		self,
@@ -126,10 +153,11 @@ class Model:
 		# --- Definição de funções ajudantes de `train` --- #
 		
 		# Funções definidas dentro da função "train" a fim de garantir o escopo de acesso apenas à função train
-		
+
 		def apply_changes(delta) -> None:
 			for index in range(len(self.weights)):
 				self.weights[index] = self.weights[index] + delta[index]
+
 		
 		def check_to_calculate_accuracy(momentum: int, epoch: int, validation_set_len: int) -> bool:
 			if validation_set_len == ZERO:
@@ -146,7 +174,8 @@ class Model:
 		momentum = Model.INERTIA
 		
 		# Salva snapshots do modelo a cada nova validação utilizando o 'validation_set' 
-		accuracy_timeline = [((self.classification_accuracy(validation_set, validation_target_set), -1, self.weights))]
+		accuracy_timeline = [((self.classification_accuracy(validation_set, validation_target_set)['accuracy'], -1, self.weights))]
+
 		
 		# Salva os valores de correção dos pesos
 		delta = [
@@ -157,33 +186,40 @@ class Model:
 		# ------------------------------------------------- #
 		# -------------- Loop de Treinamento -------------- #
 		
-		for epoch in range(Model.MAX_EPOCH):
+		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
+		progress_bar = tqdm.trange(Model.DEFAULT_MAX_EPOCH, ncols=150)
+		for epoch in progress_bar:
 			if momentum == ZERO:
 				break
-			
-			error_count_in_epoch = 0
-			
+			total_error = ZERO
 			# Para cada índice, e dado do conjunto de treinamento: 
 			for index, entry in enumerate(training_set):
-				error = target_set[index] - self.feed_forward(entry)
-				error_count_in_epoch += sum([error_instance != 0 for error_instance in error]) 
+				error = training_target_set[index] - self.feed_forward(entry)
+				total_error += self.layer_error(error)
 				self.__backpropagation(error, delta, epoch) # TODO avaliar possibilidade de transformar 'delta' em valor de retorno de '__backpropagation'
 				apply_changes(delta)
-			
+
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
-			if check_to_calculate_accuracy(momentum, epoch, len(validation_set)): 
-				current_accuracy = self.classification_accuracy(validation_set, validation_target_set), epoch, self.weights 
+			if check_to_calculate_accuracy(momentum, epoch, len(validation_set)):
+				classification_accuracy_result = self.classification_accuracy(validation_set, validation_target_set)
+				current_accuracy = classification_accuracy_result['accuracy'], epoch, self.weights
 				accuracy_timeline.append(current_accuracy)
+				self.validation_error.append({'epoch': epoch, 'error': classification_accuracy_result['error']})
+        
+        	# TODO: fazer a checagem pelo erro médio, ao invés da acurácia
 				if accuracy_timeline[-1][0] > 1 - Model.ERROR_TOLERANCE or momentum < Model.INERTIA:
 					if accuracy_timeline[-1][0] > accuracy_timeline[-2][0]:
 						momentum = Model.INERTIA - 1
 					else:
 						momentum -= 1
-
-			# Se não houver critério de para antecipada, checa se houve alteração nos pesos na última época
+      		# Se não houver critério de para antecipada, checa se houve alteração nos pesos na última época
 			#elif error_count_in_epoch == 0:
 			#	break
-		
+			
+			mean_error = total_error / len(training_set)
+			self.epoch_errors.append(mean_error)
+			progress_bar.set_description(f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f} - Acurácia: {accuracy_timeline[-1][0]:.3f}")
+
 		return accuracy_timeline
 
 	def __repr__(self):
@@ -218,35 +254,17 @@ if __name__ == '__main__':
 	validation_target_set = target_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE+VALIDATION_SET_SIZE]
 	test_set = input_data[-TEST_SET_SIZE:]
 	test_target_set = target_data[-TEST_SET_SIZE:]
-	print(len(input_data), len(target_data), len(training_set), len(training_target_set), len(validation_set), len(validation_target_set))
-	# remove dados de teste
-	#input_data = input_data[:-130]
-	#target_data = target_data[:-130]
-		
-	taxa = model.classification_accuracy(training_set, training_target_set) * 100
-	print("taxa de acerto no conjunto de treinamento antes do treino: " + f"{taxa:.3f}%")
+	taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
+	print("taxa de acerto no conjunto de teste antes do treino: " + f"{taxa:.3f}%")
 	
 	acc = []		
-	acc = model.train(training_set, training_target_set, validation_set, validation_target_set)
+
 	try:	
-		#acc = model.train(training_set, training_target_set, validation_set, validation_target_set)
-		pass
+		acc = model.train(training_set, training_target_set, validation_set, validation_target_set)
+		model.plot_error()
+	except KeyboardInterrupt:
+		model.plot_error()
 	finally:
+		taxa = model.classification_accuracy(test_set, test_target_set)['accuracy'] * 100
+		print("taxa de acerto no conjunto de treinamento antes do treino: " + f"{taxa:.3f}%")
 		print(*[f'{(100*m[0]):.6f}% -> epoch: {m[1]}' for m in acc], sep='\n')
-
-		exit()		
-		
-		# O argumento training_validation_proportion tem por objetivo dividir o conjunto inicial de input em dois subconjuntos:
-		# TODO: Delegar essa funcionalidade para outra função
-		#	* Conjunto de treinamento 'training_set' (que efetivamente alimenta o cálculo dos erros)
-		#	* Conjunto de validação 'validation_set' (que é usado para calcular a acurácia do modelo com dados que não alimentem o treinamento)
-		
-		#training_slice_index = int(len(input_set)*training_validation_proportion)
-		#shuffle_index_range = list(range(len(input_set))) 
-		#shuffle(shuffle_index_range)
-		#input_set = input_set[shuffle_index_range]
-		#target = target[shuffle_index_range]
-		#training_set = input_set[:training_slice_index]
-		#validation_set = input_set[training_slice_index:]
-	
-
