@@ -10,6 +10,10 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import tqdm
+import json
+import os
+import pickle
+import datetime
 
 from constants import *
 from math import inf
@@ -110,7 +114,7 @@ class Model:
         avg_error = np.sum(avg_error) ** 0.5
         return avg_error
 
-    def plot_error(self) -> None:
+    def plot_error(self, save_path=None) -> None:
         # Exibe o gráfico com os erros de cada época, no treino e na validação
         plt.plot(self.epoch_errors, label='Treinamento')
         validation_errors = [x['error'] for x in self.validation_error]
@@ -119,10 +123,43 @@ class Model:
         plt.xlabel('Época')
         plt.ylabel('Erro')
         plt.legend()
+        if save_path is not None:
+            plt.savefig(save_path)
         plt.show()
 
     def average_error(self, data, data_target) -> float:
         return np.average(np.absolute(data_target - self.feed_forward(data)))
+
+    def save_model(self, model_name = None) -> None:
+        # lendo o json com os dados dos modelos já salvos
+        with open('./modelos/models.json', 'r') as file:
+            models = json.load(file)
+
+        model_name = int(datetime.datetime.now(datetime.UTC).timestamp()) if model_name is None else model_name
+
+        # Cria diretório com o nome do modelo
+        os.makedirs(f'./modelos/{model_name}', exist_ok=True)
+
+        with open(f'./modelos/{model_name}/weights.pkl', 'wb') as file:
+            pickle.dump(self.weights, file)
+
+        self.plot_error(f'./modelos/{model_name}/error_plot.png')
+
+        model_info = {
+            "model_name": model_name,
+            "timestamp": datetime.datetime.now(datetime.UTC).timestamp(),
+            "epoch_errors": self.epoch_errors,
+            "validation_errors": self.validation_error,
+            "error_plot_path": f"./modelos/{model_name}_error_plot.png",
+            "weights_path": f"./modelos/{model_name}_weights.npy"
+        }
+        models.append(model_info)
+
+        # Salva as informações do modelo em um json
+        with open('./modelos/models.json', 'w') as file:
+            json.dump(models, file, indent=4)
+
+
 
     # TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
     def train(
@@ -202,7 +239,7 @@ class Model:
         # -------------- Loop de Treinamento -------------- #
 
         # TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de supressão da impressão de parâmetros do modelo a cada época (a fim de melhorar velocidade)
-        progress_bar = tqdm.trange(type(self).DEFAULT_MAX_EPOCH, ncols=50)
+        progress_bar = tqdm.trange(type(self).DEFAULT_MAX_EPOCH, ncols=100)
         for epoch in progress_bar:  #range(type(self).DEFAULT_MAX_EPOCH):
             if momentum == ZERO:
                 break
@@ -234,7 +271,7 @@ class Model:
                 mean_error = total_error / len(training_set)
                 self.epoch_errors.append(mean_error)
                 progress_bar.set_description(
-                    f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f} - Acurácia: {training_timeline[-1][0]:.3f}")
+                    f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f}")
 
         return training_timeline
 
@@ -294,10 +331,11 @@ if __name__ == '__main__':
     acc = []
 
     try:
-        acc = model.train(training_set, training_target_set, validation_set, validation_target_set)
+        acc = model.train(training_set, training_target_set, validation_set, validation_target_set, verbose=True)
         model.plot_error()
     except KeyboardInterrupt:
         model.plot_error()
+        model.save_model()
     finally:
         test_result = (model.evaluate_model(test_set, test_target_set))
         print(
