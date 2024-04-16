@@ -36,7 +36,7 @@ class Model:
     # -------------- Definição de arquitetura de treinamento ---------------- #
 
     DEFAULT_MAX_EPOCH = 200
-    VALIDATION_INTERVAL = 12
+    VALIDATION_INTERVAL = 1
     INERTIA = 6
     ERR_RATE_THRESHOLD = 0.2
     AVG_ERROR_THRESHOLD = 0.3
@@ -254,7 +254,7 @@ class Model:
             if check_to_evaluate(momentum, epoch, len(validation_set)):
                 evaluate_model_result = self.evaluate_model(validation_set, validation_target_set)
                 training_timeline.append((evaluate_model_result, epoch, self.weights))
-
+                self.validation_error.append({'epoch': epoch, 'error': evaluate_model_result['error_rate']})
                 # TODO: fazer a checagem pelo erro médio, ao invés da acurácia
                 if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[
                     type(self).MODEL_EARLY_STOP_CRITERIA] or momentum < type(self).INERTIA:
