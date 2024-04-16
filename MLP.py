@@ -153,16 +153,16 @@ class Model(metaclass=MetaModel):
 
 	def save_model(self, model_name = None) -> None:
 		# lendo o json com os dados dos modelos já salvos
-		with open('./modelos/models.json', 'r') as file:
-			models = json.load(file)
+		with open('./modelos/models.json', 'r') as f:
+			models = json.load(f)
 
 		model_name = int(datetime.datetime.now(datetime.UTC).timestamp()) if model_name is None else model_name
 
 		# Cria diretório com o nome do modelo
 		os.makedirs(f'./modelos/{model_name}', exist_ok=True)
 
-		with open(f'./modelos/{model_name}/weights.pkl', 'wb') as file:
-			pickle.dump(self.weights, file)
+		with open(f'./modelos/{model_name}/weights.pkl', 'wb') as f:
+			pickle.dump(self.weights, f)
 
 		self.plot_error(f'./modelos/{model_name}/error_plot.png')
 
@@ -177,8 +177,8 @@ class Model(metaclass=MetaModel):
 		models.append(model_info)
 
 		# Salva as informações do modelo em um json
-		with open('./modelos/models.json', 'w') as file:
-			json.dump(models, file, indent=4)
+		with open('./modelos/models.json', 'w') as f:
+			json.dump(models, f, indent=4)
 
 
 
