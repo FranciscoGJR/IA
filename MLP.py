@@ -23,7 +23,7 @@ from math import inf
 from random import shuffle
 from typing import List
 
-
+# TODO: Implementar método __new__ para evitar implantação de classes Model sem parâmetros (estáticos) necessários
 class MetaModel(type):
 	
 	def __architecture__(cls):
