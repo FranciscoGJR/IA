@@ -5,6 +5,7 @@
 # + ...
 
 
+import ast
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -27,10 +28,15 @@ class MetaModel(type):
 	
 	def __architecture__(cls):
 		architecture_implementation = {}
+		
 		for arg, arg_type in {k: type(cls.__dict__[k]) for k in filter(lambda arg: arg[:2] != '__', cls.__dict__.keys())}.items():
+			
 			if arg_type in [types.FunctionType, types.LambdaType]:
-				architecture_implementation[arg] = getsource(cls.__dict__[arg])
+				
+				architecture_implementation[arg] = ast.dump(ast.parse(getsource(cls.__dict__[arg]).strip()))
+			
 			else:
+				
 				architecture_implementation[arg] = cls.__dict__[arg]
 			
 		for top_cls in cls.__bases__:
@@ -152,11 +158,12 @@ class Model(metaclass=MetaModel):
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
 
 	def save_model(self, model_name = None) -> None:
+		
 		# lendo o json com os dados dos modelos já salvos
 		with open('./modelos/models.json', 'r') as f:
 			models = json.load(f)
 
-		model_name = int(datetime.datetime.now(datetime.UTC).timestamp()) if model_name is None else model_name
+		model_name = type(self).__name__ + ':' + str(int(datetime.datetime.now(datetime.UTC).timestamp())) if model_name is None else model_name
 
 		# Cria diretório com o nome do modelo
 		os.makedirs(f'./modelos/{model_name}', exist_ok=True)
@@ -172,14 +179,14 @@ class Model(metaclass=MetaModel):
 			"epoch_errors": self.epoch_errors,
 			"validation_errors": self.validation_error,
 			"error_plot_path": f"./modelos/{model_name}_error_plot.png",
-			"weights_path": f"./modelos/{model_name}_weights.npy"
+			"weights_path": f"./modelos/{model_name}_weights.npy",
+			"static": type(self).__architecture__()
 		}
 		models.append(model_info)
 
 		# Salva as informações do modelo em um json
 		with open('./modelos/models.json', 'w') as f:
 			json.dump(models, f, indent=4)
-
 
 
 	# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
