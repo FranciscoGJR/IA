@@ -22,6 +22,7 @@ from typing import List
 
 
 class Model:
+    
     # ------------------------------------------------------------------------------------- #
     # -------------------- Definição de arquitetura estática do modelo -------------------- #
 
