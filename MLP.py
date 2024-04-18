@@ -16,6 +16,7 @@ import os
 import pickle
 import datetime
 import types
+import seaborn as sn
 
 from constants import *
 from inspect import getsource
@@ -118,6 +119,8 @@ class Model(metaclass=MetaModel):
 	def evaluate_model(self, test_set: List[npt.NDArray[np.double]], test_target_set: List[npt.NDArray[np.double]]):
 		correct = ZERO
 		total_error = ZERO
+		matriz = np.zeros((26, 26), dtype=int)
+
 		for index, entry in enumerate(test_set):
 			output = self.feed_forward(entry)
 			error = test_target_set[index] - output
@@ -128,12 +131,16 @@ class Model(metaclass=MetaModel):
 			#	correct += ONE
 
 			threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
+
+
+
+			matriz[np.where(threshold_array == 1), np.where(test_target_set[index] == 1)] += 1
+
 			if sum(threshold_array) == 1 and np.where(threshold_array == 1) == np.where(test_target_set[index] == 1):
 				correct += ONE
 
 		avg_error = total_error / len(test_set)
-
-		return {'error_rate': 1 - (correct / len(test_set)), 'avg_error': avg_error}
+		return {'error_rate': 1 - (correct / len(test_set)), 'avg_error': avg_error, 'confusion_matrix': matriz}
 
 	# função auxiliar para calcular o erro quadrático médio
 	def average_layer_error(self, error: npt.NDArray[np.double]) -> np.double:
@@ -154,6 +161,13 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		plt.show()
 
+	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double]) -> None:
+		# Exibe o gráfico com a matriz de confusão
+		df_cm = pd.DataFrame(confusion_matrix, index=[i for i in range(26)], columns=[i for i in range(26)])
+		plt.figure(figsize=(10, 7))
+		sn.heatmap(df_cm, annot=True, fmt='d')
+		plt.show()
+
 	def average_error(self, data, data_target) -> float:
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
 
@@ -163,7 +177,7 @@ class Model(metaclass=MetaModel):
 		with open('./modelos/models.json', 'r') as f:
 			models = json.load(f)
 
-		model_name = type(self).__name__ + ':' + str(int(datetime.datetime.now(datetime.UTC).timestamp())) if model_name is None else model_name
+		model_name = type(self).__name__ + '_' + str(int(datetime.datetime.now(datetime.UTC).timestamp())) if model_name is None else model_name
 
 		# Cria diretório com o nome do modelo
 		os.makedirs(f'./modelos/{model_name}', exist_ok=True)
@@ -359,6 +373,7 @@ if __name__ == '__main__':
 		model.save_model()
 	finally:
 		test_result = (model.evaluate_model(test_set, test_target_set))
+		model.plot_confusion_matrix(test_result['confusion_matrix'])
 		print(
 			"taxa de acerto no conjunto de teste depois do treinamento: " + f"{(1 - test_result['error_rate']) * 100:.3f}%")
 		print("erro médio do conjunto de teste depois do treinamento: " + f"{test_result['avg_error']:.3f}%")
