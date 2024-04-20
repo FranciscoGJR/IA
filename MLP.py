@@ -68,7 +68,7 @@ class Model(metaclass=MetaModel):
 	INERTIA = 6
 	ERR_RATE_THRESHOLD = 0.2
 	AVG_ERROR_THRESHOLD = 0.3
-	MODEL_EARLY_STOP_CRITERIA = 'error_rate'
+	MODEL_EARLY_STOP_CRITERIA = 'avg_error'
 	# TODO: implementar função de alfa
 	LEARNING_RATE = lambda x: 0.1
 	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
