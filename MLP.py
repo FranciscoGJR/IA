@@ -70,7 +70,7 @@ class Model(metaclass=MetaModel):
 	AVG_ERROR_THRESHOLD = 0.3
 	MODEL_EARLY_STOP_CRITERIA = 'error_rate'
 	# TODO: implementar função de alfa
-	LEARNING_RATE = lambda x: 0.1
+	LEARNING_RATE = lambda x: 1 * np.e ** (-x / 50)
 	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
 
 	# Inicialização do modelo
@@ -161,17 +161,19 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		plt.show()
 
-	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double]) -> None:
+	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double], save_path=None) -> None:
 		# Exibe o gráfico com a matriz de confusão
 		df_cm = pd.DataFrame(confusion_matrix, index=[i for i in range(26)], columns=[i for i in range(26)])
 		plt.figure(figsize=(10, 7))
 		sn.heatmap(df_cm, annot=True, fmt='d')
+		if save_path is not None:
+			plt.savefig(save_path)
 		plt.show()
 
 	def average_error(self, data, data_target) -> float:
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
 
-	def save_model(self, model_name = None) -> None:
+	def save_model(self, model_name = None, confusion_matrix = None) -> None:
 		
 		# lendo o json com os dados dos modelos já salvos
 		with open('./modelos/models.json', 'r') as f:
@@ -186,6 +188,7 @@ class Model(metaclass=MetaModel):
 			pickle.dump(self.weights, f)
 
 		self.plot_error(f'./modelos/{model_name}/error_plot.png')
+		self.plot_confusion_matrix(confusion_matrix, f'./modelos/{model_name}/confusion_matrix.png')
 
 		model_info = {
 			"model_name": model_name,
@@ -194,6 +197,7 @@ class Model(metaclass=MetaModel):
 			"validation_errors": self.validation_error,
 			"error_plot_path": f"./modelos/{model_name}_error_plot.png",
 			"weights_path": f"./modelos/{model_name}_weights.npy",
+			"confusion_matrix_path": f"./modelos/{model_name}_confusion_matrix.png" if confusion_matrix is not None else "",
 			"static": type(self).__architecture__()
 		}
 		models.append(model_info)
@@ -310,7 +314,7 @@ class Model(metaclass=MetaModel):
 				mean_error = total_error / len(training_set)
 				self.epoch_errors.append(mean_error)
 				progress_bar.set_description(
-					f"Epoch: {epoch} - Erro quadrático médio: {mean_error:.3f}")
+					f"Epoch: {epoch} - Erro: {mean_error:.3f} - Taxa Apren.: {type(self).LEARNING_RATE(epoch):.3f}")
 
 		return training_timeline
 
@@ -367,13 +371,13 @@ if __name__ == '__main__':
 
 	try:
 		acc = model.train(training_set, training_target_set, validation_set, validation_target_set, verbose=True)
-		model.plot_error()
 	except KeyboardInterrupt:
-		model.plot_error()
-		model.save_model()
+		print('Salvando o modelo')
 	finally:
 		test_result = (model.evaluate_model(test_set, test_target_set))
 		model.plot_confusion_matrix(test_result['confusion_matrix'])
+		model.plot_error()
+		model.save_model(confusion_matrix=test_result['confusion_matrix'])
 		print(
 			"taxa de acerto no conjunto de teste depois do treinamento: " + f"{(1 - test_result['error_rate']) * 100:.3f}%")
 		print("erro médio do conjunto de teste depois do treinamento: " + f"{test_result['avg_error']:.3f}%")
