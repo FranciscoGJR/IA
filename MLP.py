@@ -54,9 +54,9 @@ class Model(metaclass=MetaModel):
 	# -------------------- Definição de arquitetura estática do modelo -------------------- #
 
 	NO_NODES_INPUT = 120
-	NO_NODES_HIDDEN = 42
+	NO_NODES_HIDDEN = 60
 	NO_NODES_OUTPUT = 26
-	CLASSIFICATION_THRESHOLD = 0.85
+	CLASSIFICATION_THRESHOLD = 0.5
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 
@@ -64,10 +64,10 @@ class Model(metaclass=MetaModel):
 	# -------------- Definição de arquitetura de treinamento ---------------- #
 
 	DEFAULT_MAX_EPOCH = 200
-	VALIDATION_INTERVAL = 1
+	VALIDATION_INTERVAL = 10
 	INERTIA = 6
 	ERR_RATE_THRESHOLD = 0.2
-	AVG_ERROR_THRESHOLD = 0.3
+	AVG_ERROR_THRESHOLD = 0.01
 	MODEL_EARLY_STOP_CRITERIA = 'avg_error'
 	# TODO: implementar função de alfa
 	LEARNING_RATE = lambda x: 1 * np.e ** (-x / 50)
@@ -116,7 +116,7 @@ class Model(metaclass=MetaModel):
 
 		return self.nodes[OUTPUT_LAYER]
 
-	def evaluate_model(self, test_set: List[npt.NDArray[np.double]], test_target_set: List[npt.NDArray[np.double]]):
+	def evaluate_model(self, test_set: List[npt.NDArray[np.double]], test_target_set: List[npt.NDArray[np.double]], use_max: bool = False):
 		correct = ZERO
 		total_error = ZERO
 		matriz = np.zeros((26, 26), dtype=int)
@@ -126,18 +126,18 @@ class Model(metaclass=MetaModel):
 			error = test_target_set[index] - output
 			total_error += self.average_layer_error(error)
 
-			# Checagem anterior:
-			#if np.argmax(output) == np.argmax(test_target_set[index]):
-			#	correct += ONE
+			if use_max:
+				if np.argmax(output) == np.argmax(test_target_set[index]):
+					correct += ONE
 
-			threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
+				matriz[np.argmax(output), np.argmax(test_target_set[index])] += 1
+			else:
+				threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
 
+				matriz[np.where(threshold_array == 1), np.where(test_target_set[index] == 1)] += 1
 
-
-			matriz[np.where(threshold_array == 1), np.where(test_target_set[index] == 1)] += 1
-
-			if sum(threshold_array) == 1 and np.where(threshold_array == 1) == np.where(test_target_set[index] == 1):
-				correct += ONE
+				if sum(threshold_array) == 1 and np.where(threshold_array == 1) == np.where(test_target_set[index] == 1):
+					correct += ONE
 
 		avg_error = total_error / len(test_set)
 		return {'error_rate': 1 - (correct / len(test_set)), 'avg_error': avg_error, 'confusion_matrix': matriz}
@@ -161,11 +161,15 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		plt.show()
 
+
 	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double], save_path=None) -> None:
 		# Exibe o gráfico com a matriz de confusão
-		df_cm = pd.DataFrame(confusion_matrix, index=[i for i in range(26)], columns=[i for i in range(26)])
+		df_cm = pd.DataFrame(confusion_matrix.T)
+
 		plt.figure(figsize=(10, 7))
 		sn.heatmap(df_cm, annot=True, fmt='d')
+		plt.xlabel('Predicted')
+		plt.ylabel('Actual')
 		if save_path is not None:
 			plt.savefig(save_path)
 		plt.show()
@@ -232,25 +236,29 @@ class Model(metaclass=MetaModel):
 			for index in range(len(self.weights)):
 				self.weights[index] = self.weights[index] + delta[index]
 
-		# TODO: é possível aplicar as mudanças assim que o delta for calculado? eliminando a função `apply_changes`
 		def backpropagation(error: npt.NDArray[np.double], epoch) -> List[npt.NDArray[np.double]]:
 
+			# Inicializa a matriz com os deltas de cada camada
 			delta = [
 				np.full((type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + ONE), ZERO, np.double),
 				np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + ONE), ZERO, np.double)
 			]
+
+			# Array que armazena as informações de erro da camada de saída
 			error_info = []
 
 			for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
-				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
-				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input)
+				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS)) # calcula o valor de entrada no neuronio
+				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input) # calcula a correção do erro
 				error_info.append(error_correction)
 				delta[LAST][current_neuron] = type(self).LEARNING_RATE(ONE) * error_correction * np.append(
-					self.nodes[HIDDEN_LAYER], BIAS)
+					self.nodes[HIDDEN_LAYER], BIAS)	 # calcula o delta do erro
 
+			# realiza o mesmo processo para a camada escondida
 			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
 				err_sum = ZERO
 
+				# calcula a contribuição de cada neurônio da camada de saída para o erro do neurônio atual
 				for ie, er in enumerate(error_info):
 					err_sum += er * self.weights[LAST][ie][current_neuron]
 
@@ -300,7 +308,7 @@ class Model(metaclass=MetaModel):
 			if check_to_evaluate(momentum, epoch, len(validation_set)):
 				evaluate_model_result = self.evaluate_model(validation_set, validation_target_set)
 				training_timeline.append((evaluate_model_result, epoch, self.weights))
-				self.validation_error.append({'epoch': epoch, 'error': evaluate_model_result['error_rate']})
+				self.validation_error.append({'epoch': epoch, 'error': evaluate_model_result['avg_error']})
 				# TODO: fazer a checagem pelo erro médio, ao invés da acurácia
 				if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[
 					type(self).MODEL_EARLY_STOP_CRITERIA] or momentum < type(self).INERTIA:
@@ -314,7 +322,7 @@ class Model(metaclass=MetaModel):
 				mean_error = total_error / len(training_set)
 				self.epoch_errors.append(mean_error)
 				progress_bar.set_description(
-					f"Epoch: {epoch} - Erro: {mean_error:.3f} - Taxa Apren.: {type(self).LEARNING_RATE(epoch):.3f}")
+					f"Epoch: {epoch} - Erro: {mean_error:.3f} - Acerto {(1 - training_timeline[-1][0]['error_rate'])*100:.2f}% - α: {type(self).LEARNING_RATE(epoch):.3f}")
 
 		return training_timeline
 
@@ -347,21 +355,32 @@ def from_architecture(class_name: str, **kwargs) -> type:
 if __name__ == '__main__':
 
 	model = Model()
-	shuffled_indexes = list(range(1326))
-	shuffle(shuffled_indexes)
-	input_data = np.load('./test/X.npy')[shuffled_indexes]
-	target_data = np.load('./test/Y_classe.npy')[shuffled_indexes]
+	input_data = np.load('./test/X.npy')
+	target_data = np.load('./test/Y_classe.npy')
 
-	TRAINING_SET_SIZE = 882
+	TRAINING_SET_SIZE = 902
 	VALIDATION_SET_SIZE = 294
-	TEST_SET_SIZE = 150
+	TEST_SET_SIZE = 130
+
+	test_set = input_data[-TEST_SET_SIZE:]
+	test_target_set = target_data[-TEST_SET_SIZE:]
+
+	print(len(test_set))
+
+	# removendo ultimos 130 elementos
+	input_data = input_data[:-TEST_SET_SIZE]
+	target_data = target_data[:-TEST_SET_SIZE]
+
+	# embaralhando os dados
+	shuffled_indexes = list(range(TRAINING_SET_SIZE + VALIDATION_SET_SIZE))
+	shuffle(shuffled_indexes)
+	input_data = input_data[shuffled_indexes]
+	target_data = target_data[shuffled_indexes]
 
 	training_set = input_data[:TRAINING_SET_SIZE]
 	training_target_set = target_data[:TRAINING_SET_SIZE]
 	validation_set = input_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE + VALIDATION_SET_SIZE]
 	validation_target_set = target_data[TRAINING_SET_SIZE:TRAINING_SET_SIZE + VALIDATION_SET_SIZE]
-	test_set = input_data[-TEST_SET_SIZE:]
-	test_target_set = target_data[-TEST_SET_SIZE:]
 	test_result = (model.evaluate_model(test_set, test_target_set))
 	print(
 		"taxa de acerto no conjunto de teste depois do treinamento: " + f"{(1 - test_result['error_rate']) * 100:.3f}%")
