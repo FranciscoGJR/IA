@@ -57,7 +57,7 @@ class Model(metaclass=MetaModel):
 	NO_NODES_HIDDEN = 60
 	NO_NODES_OUTPUT = 26
 	CLASSIFICATION_THRESHOLD = 0.5
-	MODEL_EVALUATION_METHOD = 'threshold'
+	CLASSIFICATION_CRITERIA = 'threshold'
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
@@ -134,14 +134,14 @@ class Model(metaclass=MetaModel):
 			total_error += self.average_layer_error(error)
 
 			# utiliza o maior valor na camada de saída para classificação
-			if type(self).MODEL_EVALUATION_METHOD == 'max_value':
+			if type(self).CLASSIFICATION_CRITERIA == 'max_value':
 				if np.argmax(output) == np.argmax(test_target_set[index]):
 					correct += ONE
 
 				matriz[np.argmax(output), np.argmax(test_target_set[index])] += 1
 
 			# utiliza o threshold para classificação
-			if type(self).MODEL_EVALUATION_METHOD == 'threshold':
+			if type(self).CLASSIFICATION_CRITERIA == 'threshold':
 				threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
 
 				matriz[np.where(threshold_array == 1), np.where(test_target_set[index] == 1)] += 1
