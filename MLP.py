@@ -59,6 +59,7 @@ class Model(metaclass=MetaModel):
 	CLASSIFICATION_THRESHOLD = 0.5
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
+	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
 
 	# ----------------------------------------------------------------------- #
 	# -------------- Definição de arquitetura de treinamento ---------------- #
@@ -69,9 +70,7 @@ class Model(metaclass=MetaModel):
 	ERR_RATE_THRESHOLD = 0.2
 	AVG_ERROR_THRESHOLD = 0.01
 	MODEL_EARLY_STOP_CRITERIA = 'avg_error'
-	# TODO: implementar função de alfa
 	LEARNING_RATE = lambda x: 1 * np.e ** (-x / 50)
-	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
 
 	# Inicialização do modelo
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
@@ -101,8 +100,13 @@ class Model(metaclass=MetaModel):
 					np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + 1), w[1], np.double)
 				]
 
+	def set_weights_from_file(self, file_path: str) -> None:
+		with open(file_path, 'rb') as f:
+			self.weights = pickle.load(f)
+
 	def feed_forward(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
 
+		# aloca os dados de entrada na rede
 		self.nodes[INPUT_LAYER] = data
 
 		for current_layer in range(HIDDEN_LAYER, len(self.nodes)):
@@ -113,9 +117,11 @@ class Model(metaclass=MetaModel):
 
 			# aplica a função de ativação na camada de neurônios
 			self.nodes[current_layer] = np.vectorize(type(self).ACTIVATE)(layer_output)
+			# a função vectorize é utilizada para converter uma função escalar em uma função vetorial, aplicando para todos os valores de um array
 
 		return self.nodes[OUTPUT_LAYER]
 
+	# calcula métricas de avaliação do modelo
 	def evaluate_model(self, test_set: List[npt.NDArray[np.double]], test_target_set: List[npt.NDArray[np.double]], use_max: bool = False):
 		correct = ZERO
 		total_error = ZERO
@@ -126,11 +132,13 @@ class Model(metaclass=MetaModel):
 			error = test_target_set[index] - output
 			total_error += self.average_layer_error(error)
 
+			# utiliza o maior valor na camada de saída para classificação
 			if use_max:
 				if np.argmax(output) == np.argmax(test_target_set[index]):
 					correct += ONE
 
 				matriz[np.argmax(output), np.argmax(test_target_set[index])] += 1
+			# utiliza o threshold para classificação
 			else:
 				threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
 
@@ -247,6 +255,7 @@ class Model(metaclass=MetaModel):
 			# Array que armazena as informações de erro da camada de saída
 			error_info = []
 
+			# para cada neuronio do camada de saída
 			for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
 				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS)) # calcula o valor de entrada no neuronio
 				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input) # calcula a correção do erro
@@ -292,7 +301,6 @@ class Model(metaclass=MetaModel):
 		# ------------------------------------------------- #
 		# -------------- Loop de Treinamento -------------- #
 
-		# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de supressão da impressão de parâmetros do modelo a cada época (a fim de melhorar velocidade)
 		progress_bar = tqdm.trange(type(self).DEFAULT_MAX_EPOCH, ncols=100)
 		for epoch in progress_bar:  #range(type(self).DEFAULT_MAX_EPOCH):
 			if momentum == ZERO:
@@ -318,6 +326,7 @@ class Model(metaclass=MetaModel):
 					else:
 						momentum -= 1
 
+			# exibição da interface de linha de comando
 			if verbose:
 				mean_error = total_error / len(training_set)
 				self.epoch_errors.append(mean_error)
