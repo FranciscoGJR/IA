@@ -1,6 +1,6 @@
 from MLP import Model, from_architecture
 from random import shuffle
-from functions import Functions
+from functions import activation_functions
 import numpy as np
 import json
 
@@ -38,15 +38,10 @@ model_definitions.sort(key=lambda x: x.get('NO_NODES_HIDDEN', 42))
 
 for definition in model_definitions:
     print(f'Treinando o modelo {definition.get('class_name', "Modelo sem nome")}')
-    if definition.get('ACTIVATE') == 'relu':
-        definition['ACTIVATE'] = Functions.relu
-        definition['ACTIVATE_DERIVATIVE'] = Functions.relu_derivative
-    elif definition.get('ACTIVATE') == 'leaky_relu':
-        definition['ACTIVATE'] = Functions.leaky_relu
-        definition['ACTIVATE_DERIVATIVE'] = Functions.leaky_relu_derivative
-    elif definition.get('ACTIVATE') == 'tanh':
-        definition['ACTIVATE'] = Functions.tanh
-        definition['ACTIVATE_DERIVATIVE'] = Functions.tanh_derivative
+
+    activation_name = definition.get('ACTIVATE')
+    if activation_name in activation_functions:
+        definition['ACTIVATE'], definition['ACTIVATE_DERIVATIVE'] = activation_functions[activation_name]
 
     model = from_architecture(**definition)()
     model.train(training_set, training_target_set, validation_set, validation_target_set)
