@@ -185,8 +185,16 @@ class Model(metaclass=MetaModel):
 	def average_error(self, data, data_target) -> float:
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
 
-	def save_model(self, model_name = None, confusion_matrix = None) -> None:
-		
+	def save_model(self, model_name=None, confusion_matrix=None) -> None:
+
+		# checa se o diretório existe, caso contrário, cria
+		os.makedirs('./modelos', exist_ok=True)
+
+		# checa se o arquivo de modelos já existe, caso contrário, cria
+		if not os.path.exists('./modelos/models.json'):
+			with open('./modelos/models.json', 'w') as f:
+				json.dump([], f)
+
 		# lendo o json com os dados dos modelos já salvos
 		with open('./modelos/models.json', 'r') as f:
 			models = json.load(f)
