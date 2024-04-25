@@ -1,0 +1,74 @@
+[
+  {
+    "class_name": "26n_threshold",
+    "NO_NODES_HIDDEN": 26,
+    "CLASSIFICATION_THRESHOLD": 0.5,
+    "CLASSIFICATION_CRITERIA": "threshold",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 1
+  },
+  {
+    "class_name": "26n_max",
+    "NO_NODES_HIDDEN": 26,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 1
+  },
+  {
+    "class_name": "60n_threshold",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_THRESHOLD": 0.5,
+    "CLASSIFICATION_CRITERIA": "threshold",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 10
+  },
+  {
+    "class_name": "60n_threshold_leaky_relu",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_THRESHOLD": 0.5,
+    "CLASSIFICATION_CRITERIA": "threshold",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 1,
+    "LEARNING_RATE_START": 0.01,
+    "ACTIVATE": "leaky_relu"
+  },
+  {
+    "class_name": "60n_threshold_tanh",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_THRESHOLD": 0.0,
+    "CLASSIFICATION_CRITERIA": "threshold",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 1,
+    "LEARNING_RATE_START": 1.0,
+    "ACTIVATE": "tanh"
+  },
+  {
+    "class_name": "60n_max",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 10
+  },
+  {
+    "class_name": "120_threshold",
+    "NO_NODES_HIDDEN": 120,
+    "CLASSIFICATION_THRESHOLD": 0.5,
+    "CLASSIFICATION_CRITERIA": "threshold",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 10
+  },
+  {
+    "class_name": "120_max",
+    "NO_NODES_HIDDEN": 120,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 10
+  },
+  {
+    "class_name": "10n_max",
+    "NO_NODES_HIDDEN": 10,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 100,
+    "VALIDATION_INTERVAL": 1
+  }
+]

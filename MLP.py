@@ -71,7 +71,11 @@ class Model(metaclass=MetaModel):
 	ERR_RATE_THRESHOLD = 0.2
 	AVG_ERROR_THRESHOLD = 0.01
 	MODEL_EARLY_STOP_CRITERIA = 'avg_error'
-	LEARNING_RATE = lambda x: 1 * np.e ** (-x / 50)
+	LEARNING_RATE_START = 1.0
+	LEARNING_RATE_DECAY = 50.0 # quanto menor, mais rápido o decaimento
+
+	def LEARNING_RATE(self, epoch: int) -> float:
+		return type(self).LEARNING_RATE_START * np.e ** (-epoch / Model.LEARNING_RATE_DECAY)
 
 	# Inicialização do modelo
 	def __init__(self, w: List[npt.NDArray[np.double]] = None):
@@ -158,7 +162,7 @@ class Model(metaclass=MetaModel):
 		avg_error = np.sum(avg_error) ** 0.5
 		return avg_error
 
-	def plot_error(self, save_path=None) -> None:
+	def plot_error(self, show: bool = True, save_path=None) -> None:
 		# Exibe o gráfico com os erros de cada época, no treino e na validação
 		plt.plot(self.epoch_errors, label='Treinamento')
 		validation_errors = [x['error'] for x in self.validation_error]
@@ -169,10 +173,11 @@ class Model(metaclass=MetaModel):
 		plt.legend()
 		if save_path is not None:
 			plt.savefig(save_path)
-		plt.show()
+		if show:
+			plt.show()
 
 
-	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double], save_path=None) -> None:
+	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double], show: bool=True, save_path=None) -> None:
 		# Exibe o gráfico com a matriz de confusão
 		df_cm = pd.DataFrame(confusion_matrix.T)
 
@@ -182,7 +187,8 @@ class Model(metaclass=MetaModel):
 		plt.ylabel('Actual')
 		if save_path is not None:
 			plt.savefig(save_path)
-		plt.show()
+		if show:
+			plt.show()
 
 	def average_error(self, data, data_target) -> float:
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
@@ -209,8 +215,8 @@ class Model(metaclass=MetaModel):
 		with open(f'./modelos/{model_name}/weights.pkl', 'wb') as f:
 			pickle.dump(self.weights, f)
 
-		self.plot_error(f'./modelos/{model_name}/error_plot.png')
-		self.plot_confusion_matrix(confusion_matrix, f'./modelos/{model_name}/confusion_matrix.png')
+		self.plot_error(save_path='./modelos/{model_name}/error_plot.png', show=False)
+		self.plot_confusion_matrix(confusion_matrix, save_path='./modelos/{model_name}/confusion_matrix.png', show=False)
 
 		model_info = {
 			"model_name": model_name,
@@ -270,7 +276,7 @@ class Model(metaclass=MetaModel):
 				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS)) # calcula o valor de entrada no neuronio
 				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input) # calcula a correção do erro
 				error_info.append(error_correction)
-				delta[LAST][current_neuron] = type(self).LEARNING_RATE(ONE) * error_correction * np.append(
+				delta[LAST][current_neuron] = self.LEARNING_RATE(ONE) * error_correction * np.append(
 					self.nodes[HIDDEN_LAYER], BIAS)	 # calcula o delta do erro
 
 			# realiza o mesmo processo para a camada escondida
@@ -283,7 +289,7 @@ class Model(metaclass=MetaModel):
 
 				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
 				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input)
-				delta[FIRST][current_neuron] = type(self).LEARNING_RATE(epoch) * error_correction * np.append(
+				delta[FIRST][current_neuron] = self.LEARNING_RATE(epoch) * error_correction * np.append(
 					self.nodes[INPUT_LAYER], BIAS)
 
 			return delta
@@ -318,7 +324,7 @@ class Model(metaclass=MetaModel):
 			total_error = ZERO
 			# Para cada índice, e dado do conjunto de treinamento:
 			for index, entry in enumerate(training_set):
-				error = training_target_set[index] - self.feed_forward(entry)
+				error = target_set[index] - self.feed_forward(entry)
 				total_error += self.average_layer_error(error)
 				apply_changes(backpropagation(error, epoch))
 
@@ -341,7 +347,7 @@ class Model(metaclass=MetaModel):
 				mean_error = total_error / len(training_set)
 				self.epoch_errors.append(mean_error)
 				progress_bar.set_description(
-					f"Epoch: {epoch} - Erro: {mean_error:.3f} - Acerto {(1 - training_timeline[-1][0]['error_rate'])*100:.2f}% - α: {type(self).LEARNING_RATE(epoch):.3f}")
+					f"Epoch: {epoch} - Erro: {mean_error:.3f} - Acerto {(1 - training_timeline[-1][0]['error_rate'])*100:.2f}% - α: {self.LEARNING_RATE(epoch):.3f}")
 
 		return training_timeline
 
