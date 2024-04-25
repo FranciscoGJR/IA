@@ -47,4 +47,4 @@ for definition in model_definitions:
     model = from_architecture(**definition)()
     model.train(training_set, training_target_set, validation_set, validation_target_set)
     result = model.evaluate_model(test_set, test_target_set)
-    model.save_model(confusion_matrix=result['confusion_matrix'])
+    model.save_model(model_name=definition.get('class_name', 'Sem Nome'), confusion_matrix=result['confusion_matrix'])

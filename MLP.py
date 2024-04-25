@@ -175,6 +175,8 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		if show:
 			plt.show()
+		plt.cla()
+		plt.clf()
 
 
 	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double], show: bool=True, save_path=None) -> None:
@@ -189,6 +191,8 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		if show:
 			plt.show()
+		plt.cla()
+		plt.clf()
 
 	def average_error(self, data, data_target) -> float:
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
@@ -215,8 +219,8 @@ class Model(metaclass=MetaModel):
 		with open(f'./modelos/{model_name}/weights.pkl', 'wb') as f:
 			pickle.dump(self.weights, f)
 
-		self.plot_error(save_path='./modelos/{model_name}/error_plot.png', show=False)
-		self.plot_confusion_matrix(confusion_matrix, save_path='./modelos/{model_name}/confusion_matrix.png', show=False)
+		self.plot_error(save_path=f'./modelos/{model_name}/error_plot.png', show=False)
+		self.plot_confusion_matrix(confusion_matrix, save_path=f'./modelos/{model_name}/confusion_matrix.png', show=False)
 
 		model_info = {
 			"model_name": model_name,
