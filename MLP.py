@@ -6,6 +6,7 @@
 
 
 import ast
+import string
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -181,7 +182,9 @@ class Model(metaclass=MetaModel):
 
 	def plot_confusion_matrix(self, confusion_matrix: npt.NDArray[np.double], show: bool=True, save_path=None) -> None:
 		# Exibe o gráfico com a matriz de confusão
-		df_cm = pd.DataFrame(confusion_matrix.T)
+		alphabet = string.ascii_uppercase  # Get uppercase alphabet letters
+		df_cm = pd.DataFrame(confusion_matrix.T, index=[alphabet[i] for i in range(25, -1, -1)],
+							 columns=[alphabet[i] for i in range(26)])
 
 		plt.figure(figsize=(10, 7))
 		sn.heatmap(df_cm, annot=True, fmt='d')
