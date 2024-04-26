@@ -4,14 +4,14 @@
     "NO_NODES_HIDDEN": 26,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 1
   },
   {
     "class_name": "26n_max",
     "NO_NODES_HIDDEN": 26,
     "CLASSIFICATION_CRITERIA": "max_value",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 1
   },
   {
@@ -19,7 +19,7 @@
     "NO_NODES_HIDDEN": 60,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 10
   },
   {
@@ -27,7 +27,7 @@
     "NO_NODES_HIDDEN": 60,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 1,
     "LEARNING_RATE_START": 0.01,
     "ACTIVATE": "leaky_relu"
@@ -37,7 +37,7 @@
     "NO_NODES_HIDDEN": 60,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 10,
     "LEARNING_RATE_START": 0.01,
     "ACTIVATE": "tanh"
@@ -46,7 +46,7 @@
     "class_name": "60n_max",
     "NO_NODES_HIDDEN": 60,
     "CLASSIFICATION_CRITERIA": "max_value",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 10
   },
   {
@@ -54,7 +54,7 @@
     "NO_NODES_HIDDEN": 120,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 10
   },
   {
@@ -62,7 +62,7 @@
     "NO_NODES_HIDDEN": 120,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "LEARNING_RATE_START": 0.01,
     "VALIDATION_INTERVAL": 10,
     "ACTIVATE": "tanh"
@@ -71,14 +71,35 @@
     "class_name": "120_max",
     "NO_NODES_HIDDEN": 120,
     "CLASSIFICATION_CRITERIA": "max_value",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 10
   },
   {
     "class_name": "10n_max",
     "NO_NODES_HIDDEN": 10,
     "CLASSIFICATION_CRITERIA": "max_value",
-    "DEFAULT_MAX_EPOCH": 100,
+    "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 1
+  },
+  {
+    "class_name": "120_max_200e",
+    "NO_NODES_HIDDEN": 120,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 300,
+    "VALIDATION_INTERVAL": 10
+  },
+    {
+    "class_name": "60_max_200e",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 300,
+    "VALIDATION_INTERVAL": 10
+  },
+    {
+    "class_name": "200_max",
+    "NO_NODES_HIDDEN": 200,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 300,
+    "VALIDATION_INTERVAL": 10
   }
 ]
