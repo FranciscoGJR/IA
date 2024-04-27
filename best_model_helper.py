@@ -1,6 +1,6 @@
 import json
 
-with open('./modelos/models.json') as f:
+with open('./modelos_interessantes/models.json') as f:
     data = json.load(f)
 
 # ordena modelos por melhor acurácia

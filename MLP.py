@@ -200,7 +200,7 @@ class Model(metaclass=MetaModel):
 	def average_error(self, data, data_target) -> float:
 		return np.average(np.absolute(data_target - self.feed_forward(data)))
 
-	def save_model(self, model_name=None, confusion_matrix=None) -> None:
+	def save_model(self, model_name=None, confusion_matrix=None, custom_data=None) -> None:
 
 		# checa se o diretório existe, caso contrário, cria
 		os.makedirs('./modelos', exist_ok=True)
@@ -233,6 +233,7 @@ class Model(metaclass=MetaModel):
 			"error_plot_path": f"./modelos/{model_name}_error_plot.png",
 			"weights_path": f"./modelos/{model_name}_weights.npy",
 			"confusion_matrix_path": f"./modelos/{model_name}_confusion_matrix.png" if confusion_matrix is not None else "",
+			"custom_data": custom_data,
 			"static": type(self).__architecture__()
 		}
 		models.append(model_info)
