@@ -34,7 +34,7 @@ with open('model_definitions.json', 'r') as file:
     model_definitions = json.load(file)
 
 # ordena os modelos pelo número de neuronios na camada oculta
-model_definitions.sort(key=lambda x: x.get('NO_NODES_HIDDEN', 42))
+model_definitions.sort(key=lambda x: x.get('NO_NODES_HIDDEN', 42), reverse=True)
 
 print('Quantidade de modelos a serem treinados:', len(model_definitions))
 for definition in model_definitions:

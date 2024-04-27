@@ -96,9 +96,9 @@
     "VALIDATION_INTERVAL": 10
   },
     {
-    "class_name": "200_max",
-    "NO_NODES_HIDDEN": 200,
-    "CLASSIFICATION_CRITERIA": "max_value",
+    "class_name": "300_threshold",
+    "NO_NODES_HIDDEN": 300,
+    "CLASSIFICATION_CRITERIA": "threshold",
     "DEFAULT_MAX_EPOCH": 300,
     "VALIDATION_INTERVAL": 10
   }
