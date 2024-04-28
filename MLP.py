@@ -6,6 +6,7 @@
 
 
 import ast
+import math
 import string
 import matplotlib.pyplot as plt
 import numpy as np
@@ -176,6 +177,7 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		if show:
 			plt.show()
+		plt.close()
 		plt.cla()
 		plt.clf()
 
@@ -194,6 +196,7 @@ class Model(metaclass=MetaModel):
 			plt.savefig(save_path)
 		if show:
 			plt.show()
+		plt.close()
 		plt.cla()
 		plt.clf()
 
@@ -344,8 +347,11 @@ class Model(metaclass=MetaModel):
 				# TODO: fazer a checagem pelo erro médio, ao invés da acurácia
 				if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[
 					type(self).MODEL_EARLY_STOP_CRITERIA] or momentum < type(self).INERTIA:
+					diff = training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] - \
+						   training_timeline[-2][0][type(self).MODEL_EARLY_STOP_CRITERIA]
+					diff = abs(diff)
 					if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] < training_timeline[-2][0][
-						type(self).MODEL_EARLY_STOP_CRITERIA]:
+						type(self).MODEL_EARLY_STOP_CRITERIA] and diff > 0.005:
 						momentum = type(self).INERTIA - 1
 					else:
 						momentum -= 1

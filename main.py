@@ -62,6 +62,7 @@ for definition in model_definitions:
         custom_data = {
             "test_accuracy": (1 - result['error_rate']) * 100,
             "test_avg_error": result['avg_error'],
+            "crossvalidation": False,
         }
         model.save_model(model_name=definition.get('class_name', 'Sem Nome'), confusion_matrix=result['confusion_matrix'], custom_data=custom_data)
 
@@ -88,5 +89,5 @@ for definition in model_definitions:
                 "crossvalidation_size": CROSS_VALIDATION_SIZE,
                 "crossvalidation_group": definition.get('class_name')
             }
-            model.save_model(model_name=definition.get('class_name' + f'_{i}', 'Sem Nome'), confusion_matrix=result['confusion_matrix'])
+            model.save_model(model_name=definition.get('class_name', 'Sem Nome') + f'_{i}', confusion_matrix=result['confusion_matrix'], custom_data=custom_data)
 
