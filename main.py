@@ -45,7 +45,7 @@ for definition in model_definitions:
     if definition.get('PRIORITY'):
         del definition['PRIORITY']
 
-    print(f'Treinando o modelo {definition.get('class_name', "Modelo sem nome")}')
+    print(f"Treinando o modelo {definition.get('class_name', 'Modelo sem nome')}")
 
     activation_name = definition.get('ACTIVATE')
     if activation_name in activation_functions:
