@@ -4,6 +4,7 @@ from functions import activation_functions
 from data_loader import cross_validation_split
 import numpy as np
 import json
+import inquirer
 
 input_data = np.load('./test/X.npy')
 target_data = np.load('./test/Y_classe.npy')
@@ -37,11 +38,30 @@ with open('model_definitions.json', 'r') as file:
 # executa primeiro os modelos com prioridade alta e baixo número de neuronios ocultos
 model_definitions.sort(key=lambda x: (-x.get('PRIORITY', 0), x.get('NO_NODES_HIDDEN', 42)))
 
+# cria dicionario com os modelos, sendo o nome a chave
+model_names = [model.get('class_name', 'Sem Nome') for model in model_definitions]
+model_names.insert(0, 'Todos')
+
+question = [
+    inquirer.Checkbox('models',
+                      message="Selecione os modelos que deseja treinar (use espaço para selecionar e setas para mover):",
+                      choices=model_names,
+                      ),
+]
+
+answers = inquirer.prompt(question)
+
+print('\n\n\n\n\n')
+
+if 'Todos' not in answers['models']:
+    model_definitions = [model for model in model_definitions if model.get('class_name', 'Sem Nome') in answers['models']]
+
 print('Quantidade de modelos a serem treinados:', len(model_definitions))
 for i, definition in enumerate(model_definitions):
-    print(f'{i+1} - {definition.get("class_name", "Modelo sem nome")}')
+    print(f'{i + 1} - {definition.get("class_name", "Modelo sem nome")}')
 
 for definition in model_definitions:
+    print('\n')
     if definition.get('PRIORITY'):
         del definition['PRIORITY']
 
@@ -57,21 +77,29 @@ for definition in model_definitions:
 
     if CROSS_VALIDATION_SIZE == 1:
         model = from_architecture(**definition)()
-        model.train(training_set, training_target_set, validation_set, validation_target_set)
+
+        try:
+            model.train(training_set, training_target_set, validation_set, validation_target_set)
+        except KeyboardInterrupt:
+            print('Treinamento interrompido')
+            exit()
+
         result = model.evaluate_model(test_set, test_target_set)
+        print(f'Taxa de acerto no conjunto de testes: {(1 - result["error_rate"]) * 100:.2f}%')
         custom_data = {
             "test_accuracy": (1 - result['error_rate']) * 100,
             "test_avg_error": result['avg_error'],
             "crossvalidation": False,
         }
-        model.save_model(model_name=definition.get('class_name', 'Sem Nome'), confusion_matrix=result['confusion_matrix'], custom_data=custom_data)
+        model.save_model(model_name=definition.get('class_name', 'Sem Nome'),
+                         confusion_matrix=result['confusion_matrix'], custom_data=custom_data)
 
     else:
         print('Modelo com validação cruzada')
         folds, target_folds = cross_validation_split(input_data, target_data, CROSS_VALIDATION_SIZE)
 
         for i in range(CROSS_VALIDATION_SIZE):
-            print(f'fold {i+1} de {CROSS_VALIDATION_SIZE}')
+            print(f'fold {i + 1} de {CROSS_VALIDATION_SIZE}')
             fold_training_set = np.concatenate([fold for j, fold in enumerate(folds) if j != i])
             fold_training_target_set = np.concatenate([fold for j, fold in enumerate(target_folds) if j != i])
 
@@ -79,15 +107,21 @@ for definition in model_definitions:
             fold_validation_target_set = target_folds[i]
 
             model = from_architecture(**definition)()
-            model.train(fold_training_set, fold_training_target_set, fold_validation_set, fold_validation_target_set)
+
+            try:
+                model.train(fold_training_set, fold_training_target_set, fold_validation_set, fold_validation_target_set)
+            except KeyboardInterrupt:
+                print('Treinamento interrompido')
+                exit()
+
             result = model.evaluate_model(test_set, test_target_set)
             custom_data = {
                 "test_accuracy": (1 - result['error_rate']) * 100,
                 "test_avg_error": result['avg_error'],
                 "crossvalidation": True,
-                "crossvalidation_fold": i+1,
+                "crossvalidation_fold": i + 1,
                 "crossvalidation_size": CROSS_VALIDATION_SIZE,
                 "crossvalidation_group": definition.get('class_name')
             }
-            model.save_model(model_name=definition.get('class_name', 'Sem Nome') + f'_{i}', confusion_matrix=result['confusion_matrix'], custom_data=custom_data)
-
+            model.save_model(model_name=definition.get('class_name', 'Sem Nome') + f'_{i}',
+                             confusion_matrix=result['confusion_matrix'], custom_data=custom_data)
