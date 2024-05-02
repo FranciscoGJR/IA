@@ -44,7 +44,7 @@ model_names.insert(0, 'Todos')
 
 question = [
     inquirer.Checkbox('models',
-                      message="Selecione os modelos que deseja treinar (use espaço para selecionar e setas para mover):",
+                      message="Selecione as arquiteturas que deseja treinar (use espaço para selecionar e setas para mover):",
                       choices=model_names,
                       ),
 ]
