@@ -298,8 +298,8 @@ class Model(metaclass=MetaModel):
     			#Calcula a contribuição de cada neurônio da camada de saída para o erro do neurônio atual
 				for ie, er in enumerate(error_info):
 					err_sum += er * self.weights[LAST][ie][current_neuron]
-				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
-				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input)
+				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS)) #Calcula o valor de entrada do neuronio
+				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input) #Calcula a correção de erro
 				#Calcula o delta junto do coeficiente lambda do L2 para penalização de pesos
 				delta[FIRST][current_neuron] = (
 					self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
