@@ -275,13 +275,14 @@ class Model(metaclass=MetaModel):
 				self.weights[index] = self.weights[index] + delta[index]
 
 		def backpropagation(error: npt.NDArray[np.double], epoch) -> List[npt.NDArray[np.double]]:
+      		# Inicializa a matriz com os deltas de cada camad
 			delta = [
 				np.full((type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + 1), ZERO, np.double),
 				np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + 1), ZERO, np.double)
 			]
-
+			# Array que armazena as informações de erro da camada de saída
 			error_info = []
-			# Processamento da camada de saída
+			# Processamento da camada de saída realizado para cada neuronio
 			for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
 				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
 				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input)
@@ -291,13 +292,15 @@ class Model(metaclass=MetaModel):
 					+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
 				)
 
-			# Processamento da camada oculta
+			# Repetindo para a o processamento da camada oculta
 			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
 				err_sum = ZERO
+    			#Calcula a contribuição de cada neurônio da camada de saída para o erro do neurônio atual
 				for ie, er in enumerate(error_info):
 					err_sum += er * self.weights[LAST][ie][current_neuron]
 				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
 				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input)
+				#Calcula o delta junto do coeficiente lambda do L2 para penalização de pesos
 				delta[FIRST][current_neuron] = (
 					self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
 					+ type(self).L2_COEFF * self.weights[FIRST][current_neuron]
