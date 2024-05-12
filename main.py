@@ -39,6 +39,7 @@ model_definitions.sort(key=lambda x: (-x.get('PRIORITY', 0), x.get('NO_NODES_HID
 
 print('Quantidade de modelos a serem treinados:', len(model_definitions))
 for i, definition in enumerate(model_definitions):
+    print(definition.get("USE_PENALIZATION"))
     print(f'{i+1} - {definition.get("class_name", "Modelo sem nome")}')
 
 for definition in model_definitions:

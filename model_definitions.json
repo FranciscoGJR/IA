@@ -103,10 +103,33 @@
     "ACTIVATE": "sigmoid"
   },
   {
+    "class_name": "60n_maxvalue_penalization_sigmoid",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "USE_PENALIZATION": true,
+    "L2_COEFF": 0.0001,
+    "DEFAULT_MAX_EPOCH": 75,
+    "VALIDATION_INTERVAL": 1,
+    "LEARNING_RATE_START": 0.05,
+    "ACTIVATE": "sigmoid"
+  },
+  {
     "class_name": "60n_threshold_sigmoid",
     "NO_NODES_HIDDEN": 120,
     "CLASSIFICATION_THRESHOLD": 0.5,
     "CLASSIFICATION_CRITERIA": "threshold",
+    "DEFAULT_MAX_EPOCH": 75,
+    "VALIDATION_INTERVAL": 10,
+    "LEARNING_RATE_START": 0.03,
+    "ACTIVATE": "sigmoid"
+  },
+  {
+    "class_name": "60n_threshold_penalization_sigmoid",
+    "NO_NODES_HIDDEN": 120,
+    "CLASSIFICATION_THRESHOLD": 0.5,
+    "CLASSIFICATION_CRITERIA": "threshold",
+    "USE_PENALIZATION": true,
+    "L2_COEFF": 0.0001,
     "DEFAULT_MAX_EPOCH": 75,
     "VALIDATION_INTERVAL": 10,
     "LEARNING_RATE_START": 0.03,

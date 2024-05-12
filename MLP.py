@@ -47,7 +47,7 @@ class MetaModel(type):
 			if type(top_cls) == MetaModel:
 
 				architecture_implementation = top_cls.__architecture__() | architecture_implementation
-			
+
 		return architecture_implementation
 
 
@@ -76,6 +76,7 @@ class Model(metaclass=MetaModel):
 	LEARNING_RATE_START = 1.0
 	LEARNING_RATE_DECAY = 50.0 # quanto menor, mais rápido o decaimento
      # Coeficiente de regularização L2
+	USE_PENALIZATION = False
 	L2_COEFF = 0.0001
 
 	def LEARNING_RATE(self, epoch: int) -> float:
@@ -287,10 +288,16 @@ class Model(metaclass=MetaModel):
 				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
 				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input)
 				error_info.append(error_correction)
-				delta[LAST][current_neuron] = (
-					self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
-					+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
-				)
+				if self.USE_PENALIZATION:
+					delta[LAST][current_neuron] = (
+						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+						+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
+					)
+				else:
+					delta[LAST][current_neuron] = (
+						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+						+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
+					)
 
 			# Repetindo para a o processamento da camada oculta
 			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
