@@ -288,16 +288,15 @@ class Model(metaclass=MetaModel):
 				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
 				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input)
 				error_info.append(error_correction)
+    			#Calcula o delta junto do coeficiente lambda do L2 para penalização de pesos
 				if self.USE_PENALIZATION:
 					delta[LAST][current_neuron] = (
 						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
 						+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
 					)
 				else:
-					delta[LAST][current_neuron] = (
-						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
-						+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
-					)
+					delta[LAST][current_neuron] = self.LEARNING_RATE(ONE) * error_correction * np.append(
+						self.nodes[HIDDEN_LAYER], BIAS)	 # calcula o delta do erro
 
 			# Repetindo para a o processamento da camada oculta
 			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
@@ -308,10 +307,14 @@ class Model(metaclass=MetaModel):
 				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS)) #Calcula o valor de entrada do neuronio
 				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input) #Calcula a correção de erro
 				#Calcula o delta junto do coeficiente lambda do L2 para penalização de pesos
-				delta[FIRST][current_neuron] = (
-					self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
-					+ type(self).L2_COEFF * self.weights[FIRST][current_neuron]
-				)
+				if self.USE_PENALIZATION:
+					delta[FIRST][current_neuron] = (
+						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+						+ type(self).L2_COEFF * self.weights[FIRST][current_neuron]
+					)
+				else:
+					delta[FIRST][current_neuron] = self.LEARNING_RATE(epoch) * error_correction * np.append(
+						self.nodes[INPUT_LAYER], BIAS)
 
 			return delta
 
