@@ -6,15 +6,15 @@ import numpy.typing as npt
 
 def cross_validation_split(data: npt.ArrayLike, target: npt.ArrayLike, k: int):
     """
-    Split data and target into k folds for cross validation.
+    Embaralha os dados em k folds para validação
     """
 
-    # Shuffle data and target
+    # Embaralha os dados e os targets
     data_target = list(zip(data, target))
     shuffle(data_target)
     data, target = zip(*data_target)
 
-    # Split data and target into k folds
+    # Divide os dados em k folds
     data_folds = np.array_split(data, k)
     target_folds = np.array_split(target, k)
 
