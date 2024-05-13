@@ -1,6 +1,7 @@
 # EP ACH2016 - "IA" | TURMA 04
 # BRUNO LEITE DE ANDRADE - 11369642
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
+# GUILHERME DIAS JIMENES - 11911021
 # IGOR AUGUSTO DOS SANTOS - 11796851
 # + ...
 
@@ -46,7 +47,7 @@ class MetaModel(type):
 			if type(top_cls) == MetaModel:
 
 				architecture_implementation = top_cls.__architecture__() | architecture_implementation
-			
+
 		return architecture_implementation
 
 
@@ -63,7 +64,6 @@ class Model(metaclass=MetaModel):
 	# Créditos: <a href="https://stackoverflow.com/a/29863846">Neil G, Stack Overflow</a>
 	ACTIVATE = lambda x: np.exp(-np.logaddexp(0, -x))
 	ACTIVATE_DERIVATIVE = lambda x: Model.ACTIVATE(x) * (1 - Model.ACTIVATE(x))
-
 	# ----------------------------------------------------------------------- #
 	# -------------- Definição de arquitetura de treinamento ---------------- #
 
@@ -75,6 +75,9 @@ class Model(metaclass=MetaModel):
 	MODEL_EARLY_STOP_CRITERIA = 'avg_error'
 	LEARNING_RATE_START = 1.0
 	LEARNING_RATE_DECAY = 50.0 # quanto menor, mais rápido o decaimento
+     # Coeficiente de regularização L2
+	USE_PENALIZATION = False
+	L2_COEFF = 0.0001
 
 	def LEARNING_RATE(self, epoch: int) -> float:
 		return type(self).LEARNING_RATE_START * np.e ** (-epoch / Model.LEARNING_RATE_DECAY)
@@ -161,7 +164,7 @@ class Model(metaclass=MetaModel):
 	# função auxiliar para calcular o erro quadrático médio
 	def average_layer_error(self, error: npt.NDArray[np.double]) -> np.double:
 		avg_error = error ** 2
-		avg_error = np.sum(avg_error) ** 0.5
+		avg_error = np.sum(avg_error) ** 0.5  
 		return avg_error
 
 	def plot_error(self, show: bool = True, save_path=None) -> None:
@@ -269,39 +272,49 @@ class Model(metaclass=MetaModel):
 
 		def apply_changes(delta) -> None:
 			for index in range(len(self.weights)):
+				# Aplicando a atualização dos pesos incluindo o termo de regularização L1
 				self.weights[index] = self.weights[index] + delta[index]
 
 		def backpropagation(error: npt.NDArray[np.double], epoch) -> List[npt.NDArray[np.double]]:
-
-			# Inicializa a matriz com os deltas de cada camada
+      		# Inicializa a matriz com os deltas de cada camad
 			delta = [
-				np.full((type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + ONE), ZERO, np.double),
-				np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + ONE), ZERO, np.double)
+				np.full((type(self).NO_NODES_HIDDEN, type(self).NO_NODES_INPUT + 1), ZERO, np.double),
+				np.full((type(self).NO_NODES_OUTPUT, type(self).NO_NODES_HIDDEN + 1), ZERO, np.double)
 			]
-
 			# Array que armazena as informações de erro da camada de saída
 			error_info = []
-
-			# para cada neuronio do camada de saída
+			# Processamento da camada de saída realizado para cada neuronio
 			for current_neuron, neuron in enumerate(self.nodes[OUTPUT_LAYER]):
-				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS)) # calcula o valor de entrada no neuronio
-				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input) # calcula a correção do erro
+				neuron_input = np.dot(self.weights[LAST][current_neuron], np.append(self.nodes[HIDDEN_LAYER], BIAS))
+				error_correction = error[current_neuron] * type(self).ACTIVATE_DERIVATIVE(neuron_input)
 				error_info.append(error_correction)
-				delta[LAST][current_neuron] = self.LEARNING_RATE(ONE) * error_correction * np.append(
-					self.nodes[HIDDEN_LAYER], BIAS)	 # calcula o delta do erro
+    			#Calcula o delta junto do coeficiente lambda do L2 para penalização de pesos
+				if self.USE_PENALIZATION:
+					delta[LAST][current_neuron] = (
+						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[HIDDEN_LAYER], BIAS)
+						+ type(self).L2_COEFF * self.weights[LAST][current_neuron]
+					)
+				else:
+					delta[LAST][current_neuron] = self.LEARNING_RATE(ONE) * error_correction * np.append(
+						self.nodes[HIDDEN_LAYER], BIAS)	 # calcula o delta do erro
 
-			# realiza o mesmo processo para a camada escondida
+			# Repetindo para a o processamento da camada oculta
 			for current_neuron, neuron in enumerate(self.nodes[HIDDEN_LAYER]):
 				err_sum = ZERO
-
-				# calcula a contribuição de cada neurônio da camada de saída para o erro do neurônio atual
+    			#Calcula a contribuição de cada neurônio da camada de saída para o erro do neurônio atual
 				for ie, er in enumerate(error_info):
 					err_sum += er * self.weights[LAST][ie][current_neuron]
-
-				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS))
-				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input)
-				delta[FIRST][current_neuron] = self.LEARNING_RATE(epoch) * error_correction * np.append(
-					self.nodes[INPUT_LAYER], BIAS)
+				neuron_input = np.dot(self.weights[FIRST][current_neuron], np.append(self.nodes[INPUT_LAYER], BIAS)) #Calcula o valor de entrada do neuronio
+				error_correction = err_sum * type(self).ACTIVATE_DERIVATIVE(neuron_input) #Calcula a correção de erro
+				#Calcula o delta junto do coeficiente lambda do L2 para penalização de pesos
+				if self.USE_PENALIZATION:
+					delta[FIRST][current_neuron] = (
+						self.LEARNING_RATE(epoch) * error_correction * np.append(self.nodes[INPUT_LAYER], BIAS)
+						+ type(self).L2_COEFF * self.weights[FIRST][current_neuron]
+					)
+				else:
+					delta[FIRST][current_neuron] = self.LEARNING_RATE(epoch) * error_correction * np.append(
+						self.nodes[INPUT_LAYER], BIAS)
 
 			return delta
 

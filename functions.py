@@ -22,13 +22,12 @@ def tanh(x):
 def tanh_derivative(x):
     return 1 - np.tanh(x) ** 2
 
-#Boa opção para problemas de saida binaria, mas também é afetada pel odesaparecimento do gradiente
+#Boa opção para problemas de saida binaria, mas também é afetada pelo desaparecimento do gradiente
 def sigmoid(x):
     return 1.0 / (1.0 + np.exp(-x))
 
 def sigmoid_derivative(x):
-    sigF = 1/(1+exp(-x))
-    return sigF * (1 - sigF)
+    return sigmoid(x) * (1 - sigmoid(x))
     
 #Tem melhor otimização, mas tem computabilidade custosa, precisa de uma constante beta, para este teste, definimos como 1
 def swish(x):
