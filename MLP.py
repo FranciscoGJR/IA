@@ -355,18 +355,23 @@ class Model(metaclass=MetaModel):
 			# Checa se irá calcular a acurácia do modelo para a época atual, utilizando o 'validation_set'
 			if check_to_evaluate(momentum, epoch, len(validation_set)):
 				evaluate_model_result = self.evaluate_model(validation_set, validation_target_set)
+				# Adiciona informações dos erros e pesos em um snapshot do modelo
 				training_timeline.append((evaluate_model_result, epoch, self.weights))
 				self.validation_error.append({'epoch': epoch, 'error': evaluate_model_result['avg_error']})
-				# TODO: fazer a checagem pelo erro médio, ao invés da acurácia
+
+				# Verifica se o erro médio do modelo é menor que o critério de parada
 				if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] <= early_stop_map[
 					type(self).MODEL_EARLY_STOP_CRITERIA] or momentum < type(self).INERTIA:
+					# Calcula a diferença entre o erro atual e o anterior
 					diff = training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] - \
 						   training_timeline[-2][0][type(self).MODEL_EARLY_STOP_CRITERIA]
 					diff = abs(diff)
+					# Se a diferença entre os erros for alta, e o erro atual for menor que o anterior, o treinamento continua
 					if training_timeline[-1][0][type(self).MODEL_EARLY_STOP_CRITERIA] < training_timeline[-2][0][
 						type(self).MODEL_EARLY_STOP_CRITERIA] and diff > 0.005:
 						momentum = type(self).INERTIA - 1
 					else:
+						# Caso contrário, o contador para interromper o treinamento é decrementado
 						momentum -= 1
 
 			# exibição da interface de linha de comando
