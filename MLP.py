@@ -68,16 +68,17 @@ class Model(metaclass=MetaModel):
 
 	DEFAULT_MAX_EPOCH = 200
 	VALIDATION_INTERVAL = 10
-	INERTIA = 6
+	INERTIA = 6 # Contador para parada antecipada
 	ERR_RATE_THRESHOLD = 0.2
 	AVG_ERROR_THRESHOLD = 0.01
 	MODEL_EARLY_STOP_CRITERIA = 'avg_error'
 	LEARNING_RATE_START = 1.0
-	LEARNING_RATE_DECAY = 50.0 # quanto menor, mais rápido o decaimento
+	LEARNING_RATE_DECAY = 50.0# quanto menor, mais rápido o decaimento
      # Coeficiente de regularização L2
 	USE_PENALIZATION = False
 	L2_COEFF = 0.0001
 
+	# Função que calcula a taxa de aprendizado para uma época
 	def LEARNING_RATE(self, epoch: int) -> float:
 		return type(self).LEARNING_RATE_START * np.e ** (-epoch / Model.LEARNING_RATE_DECAY)
 
@@ -129,6 +130,21 @@ class Model(metaclass=MetaModel):
 			# a função vectorize é utilizada para converter uma função escalar em uma função vetorial, aplicando para todos os valores de um array
 
 		return self.nodes[OUTPUT_LAYER]
+
+	def classify(self, data: npt.NDArray[np.double]) -> npt.NDArray[np.double]:
+		output = self.feed_forward(data)
+
+		# Classificação utilizando o valor máximo
+		if type(self).CLASSIFICATION_CRITERIA == 'max_value':
+			return np.argmax(output)
+
+		# Classificação utilizando o threshold
+		if type(self).CLASSIFICATION_CRITERIA == 'threshold':
+			threshold_array = np.vectorize(lambda x: x >= type(self).CLASSIFICATION_THRESHOLD)(output)
+			if sum(threshold_array) == 1:
+				return np.where(threshold_array == 1)[0][0]
+
+		return None
 
 	# calcula métricas de avaliação do modelo
 	def evaluate_model(self, test_set: List[npt.NDArray[np.double]], test_target_set: List[npt.NDArray[np.double]]):
