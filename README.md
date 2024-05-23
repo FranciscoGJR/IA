@@ -1,13 +1,13 @@
 # MLP - Reconhecimento de caracteres
 
-### Integrantes
+## Integrantes
 * BRUNO LEITE DE ANDRADE - 11369642
 * FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 * GUILHERME DIAS JIMENES - 11911021
 * IGOR AUGUSTO DOS SANTOS - 11796851
 * LAURA
 
-### Observações
+## Observações
 * O arquivo `main.py` é responsável por treinar os modelos e armazenar os resultados na pasta `./modelos`.
 * O arquivo `mlp.py` contém a implementação da rede neural
 * O arquivo `best_model_helper.py` é responsável por carregar os modelos treinados e exibir os resultados.
@@ -15,7 +15,7 @@
 * O arquivo `functions.py` contém funções de ativação e derivadas.
 * O código foi desenvolvido em Python 3.12
 
-### Como executar
+## Como executar
 1. Clone o repositório
 2. Crie o ambiente virtual com o comando:
 ```bash
@@ -34,7 +34,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### Utilização
+## Utilização
 ```
 [?] Selecione as arquiteturas que deseja treinar (use espaço para selecionar e setas para mover)::
  > [ ] Todos
