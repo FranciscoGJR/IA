@@ -60,6 +60,14 @@
     "VALIDATION_INTERVAL": 10
   },
   {
+    "class_name": "60n_max_150epoch_recomendado",
+    "NO_NODES_HIDDEN": 60,
+    "CLASSIFICATION_CRITERIA": "max_value",
+    "DEFAULT_MAX_EPOCH": 150,
+    "VALIDATION_INTERVAL": 1,
+    "PRIORITY": 1000
+  },
+  {
     "class_name": "120n_max_300epoch",
     "NO_NODES_HIDDEN": 120,
     "CLASSIFICATION_CRITERIA": "max_value",

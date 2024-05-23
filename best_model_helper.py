@@ -1,6 +1,14 @@
+# EP ACH2016 - "IA" | TURMA 04
+# BRUNO LEITE DE ANDRADE - 11369642
+# FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
+# GUILHERME DIAS JIMENES - 11911021
+# IGOR AUGUSTO DOS SANTOS - 11796851
+# LAURA
+
+
 import json
 
-with open('./modelos_interessantes/models.json') as f:
+with open('./modelos_apresentacao/models.json') as f:
     data = json.load(f)
 
 cross_validation_groups = {}

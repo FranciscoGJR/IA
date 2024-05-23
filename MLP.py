@@ -3,7 +3,7 @@
 # FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 # GUILHERME DIAS JIMENES - 11911021
 # IGOR AUGUSTO DOS SANTOS - 11796851
-# + ...
+# LAURA
 
 
 import ast
@@ -27,7 +27,6 @@ from math import inf
 from random import shuffle
 from typing import List
 
-# TODO: Implementar método __new__ para evitar implantação de classes Model sem parâmetros (estáticos) necessários
 class MetaModel(type):
 	
 	def __architecture__(cls):
@@ -249,7 +248,6 @@ class Model(metaclass=MetaModel):
 			json.dump(models, f, indent=4)
 
 
-	# TODO: implementar funcionalidade de 'verbose_printing', para possibilidade de impressão de parâmetros do modelo a cada época
 	def train(
 			self,
 			training_set: List[npt.NDArray[np.double]],
