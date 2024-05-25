@@ -5,7 +5,7 @@
 * FRANCISCO OLIVEIRA GOMES JUNIOR - 12683190
 * GUILHERME DIAS JIMENES - 11911021
 * IGOR AUGUSTO DOS SANTOS - 11796851
-* LAURA
+* LAURA PAIVA DE SIQUEIRA – 11207515​
 
 ## Observações
 * O arquivo `main.py` é responsável por treinar os modelos e armazenar os resultados na pasta `./modelos`.
